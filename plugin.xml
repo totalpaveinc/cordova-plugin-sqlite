@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="@totalpave/cordova-plugin-sqlite" version="0.0.0">
+  <name>SQLite 3.39.2</name>
+  <description>Cordova plugin to interface with SQLite databases.</description>
+  <author>Total Pave Inc.</author>
+  <license>Apache 2.0</license>
+  <keywords>cordova,cordova-ios,cordova-android,sqlite, sqlite3</keywords>
+  <repo>https://github.com/totalpave/cordova-plugin-sqlite</repo>
+
+  <dependency id="@totalpave/cordova-plugin-libcxx" version="*" />
+  <dependency id="@totalpave/cordova-plugin-libsqlite" version="*" />
+
+  <js-module src="www/SQLite.js" name="SQLite">
+    <clobbers target="totalpave.sqlite.SQLite" />
+  </js-module>
+
+  <js-module src="www/Database.js" name="Database">
+    <clobbers target="totalpave.sqlite.Database" />
+  </js-module>
+
+  <js-module src="www/Query.js" name="Query">
+    <clobbers target="totalpave.sqlite.Query" />
+  </js-module>
+
+  <platform name="android">
+    <config-file target="config.xml" parent="/*">
+      <feature name="TPSQLite">
+        <param name="android-package" value="com.totalpave.cordova.sqlite.SQLite" />
+      </feature>
+    </config-file>
+
+    <source-file src="src/android/com/totalpave/cordova/sqlite/SQLite.java" target-dir="src/com/totalpave/cordova/sqlite" />
+    <source-file src="src/android/com/totalpave/cordova/sqlite/Database.java" target-dir="src/com/totalpave/cordova/sqlite" />
+  </platform>
+
+  <platform name="ios">
+    <config-file target="config.xml" parent="/*">
+      <feature name="TPSQLite">
+        <!-- <param name="ios-package" value="TODO" /> -->
+      </feature>
+    </config-file>
+  </platform>
+</plugin>

@@ -1,0 +1,7 @@
+{
+    "java.project.sourcePaths": [
+        "src/android",
+        "third_party/cordova-android/framework/src",
+        "third_party/sqlite/android/sqlite3/src/main/java"
+    ],
+}

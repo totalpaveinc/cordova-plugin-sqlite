@@ -1,0 +1,36 @@
+{
+  "name": "@totalpave/cordova-plugin-sqlite",
+  "version": "0.0.0",
+  "description": "SQLite plugin for Cordova Android & iOS",
+  "main": "www/api.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totalpaveinc/cordova-plugin-sqlite.git"
+  },
+  "author": "norman.breau@totalpave.com",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/totalpaveinc/cordova-plugin-sqlite/issues"
+  },
+  "homepage": "https://github.com/totalpaveinc/cordova-plugin-sqlite#readme",
+  "devDependencies": {
+    "@types/cordova": "^0.0.34",
+    "ts-node": "^10.9.1",
+    "typescript": "4.7"
+  },
+  "engines": {
+    "cordovaDependencies": {
+      "0.0.0": {
+        "cordova-android": ">= 10",
+        "cordova-ios": ">= 6"
+      }
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.4.0"
+  }
+}
