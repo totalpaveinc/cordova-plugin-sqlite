@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ..
+cd ../..
 rm -f ./*.tgz
 
 npm run build

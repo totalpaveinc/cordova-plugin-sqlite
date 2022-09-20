@@ -14,7 +14,6 @@
    limitations under the License.
 */
 
-import cordova = require('cordova');
 import {Database} from './Database';
 
 enum OpenFlags {

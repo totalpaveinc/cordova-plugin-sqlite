@@ -10,17 +10,17 @@
   <dependency id="@totalpave/cordova-plugin-libcxx" version="*" />
   <dependency id="@totalpave/cordova-plugin-libsqlite" version="*" />
 
-  <js-module src="www/SQLite.js" name="SQLite">
-    <clobbers target="totalpave.sqlite.SQLite" />
+  <js-module src="www/sqlite.js" name="SQLite">
+    <clobbers target="totalpave.sqlite" />
   </js-module>
 
-  <js-module src="www/Database.js" name="Database">
+  <!-- <js-module src="www/Database.js" name="Database">
     <clobbers target="totalpave.sqlite.Database" />
   </js-module>
 
   <js-module src="www/Query.js" name="Query">
     <clobbers target="totalpave.sqlite.Query" />
-  </js-module>
+  </js-module> -->
 
   <platform name="android">
     <config-file target="config.xml" parent="/*">

@@ -27,7 +27,64 @@ function onDeviceReady() {
     console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
     document.getElementById('deviceready').classList.add('ready');
 
+    class InsertPersonQuery extends window.totalpave.sqlite.Query {
+        getQuery() {
+            return `
+                INSERT INTO test VALUES (
+                    :id,
+                    :name,
+                    :height,
+                    :data
+                )
+            `;
+        }
+    }
+
     const SQLite = window.totalpave.sqlite.SQLite;
 
-    console.log('SQLite', SQLite);
+    (async () => {
+        let db = await SQLite.open(cordova.file.dataDirectory + 'test.db', true);
+        console.log('DB', db);
+
+        await new window.totalpave.sqlite.RawQuery(`
+            CREATE TABLE IF NOT EXISTS test (
+                id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                height REAL,
+                data BLOB
+            )
+        `).execute(db);
+
+        await new window.totalpave.sqlite.RawQuery(`DELETE FROM test`).execute(db);
+        
+        await new InsertPersonQuery({
+            id: 1,
+            name: 'John Smith',
+            height: 3.14,
+            data: null
+        }).execute(db);
+        await new InsertPersonQuery({
+            id: 2,
+            name: 'Norman Breau',
+            height: 5.7,
+            data: null
+        }).execute(db);
+        await new InsertPersonQuery({
+            id: 1,
+            name: 'Tyler Breau',
+            height: 5.8,
+            data: new Blob([[0x11]])
+        }).execute(db);
+
+        let results = await new window.totalpave.sqlite.RawQuery('SELECT * FROM test').execute(db);
+        for (let i = 0; i < results.length; i++) {
+            console.log('RESULT', i, results[i]);
+        }
+    })().then(() => {
+        console.log('done');
+    }).catch((error) => {
+        console.error('Test failed with error', error);
+    });
+
+    // console.log('SQLite', SQLite);
 }

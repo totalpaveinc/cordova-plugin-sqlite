@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "ES6",
         "lib": ["DOM"],
-        "module": "commonjs",
+        "module": "ES2015",
         "declaration": true,
         "sourceMap": true,
         "outDir": "./www",

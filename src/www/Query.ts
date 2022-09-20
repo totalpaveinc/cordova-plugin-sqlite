@@ -14,7 +14,6 @@
    limitations under the License.
 */
 
-import cordova = require('cordova');
 import {SERVICE_NAME} from './SQLite';
 import { Database } from './Database';
 

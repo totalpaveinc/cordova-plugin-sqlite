@@ -2,6 +2,15 @@
     "java.project.sourcePaths": [
         "src/android",
         "third_party/cordova-android/framework/src",
-        "third_party/sqlite/android/sqlite3/src/main/java"
+
+        // For Norman
+        "/development/android/sources/android-24"
     ],
+    "java.project.referencedLibraries": [
+        "third_party/sqlite/bin/android/sqlite3.aar",
+        
+        // For Norman
+        "/development/android/platforms/android-32/android.jar"
+    ],
+    "java.configuration.updateBuildConfiguration": "disabled",
 }

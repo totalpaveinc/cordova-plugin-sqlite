@@ -22,6 +22,7 @@ import com.totalpave.sqlite3.Statement;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Iterator;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -42,29 +43,28 @@ public class Database {
         Sqlite.close($handle);
     }
 
-    public JSONArray run(String sql, HashMap<String, Object> vars) throws JSONException {
+    public JSONArray run(String sql, JSONObject vars) throws JSONException {
         long statement = Sqlite.prepare($handle, sql);
 
-        if (vars.size() > 0) {
-            for (Map.Entry<String, Object> entry: vars.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
+        Iterator<String> keys = vars.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object value = vars.get(key);
 
-                if (value instanceof String) {
-                    Sqlite.bindString(statement, key, value);
-                }
-                else if (value instanceof Integer) {
-                    Sqlite.bindInt(statement, key, value);
-                }
-                else if (value instanceof Double) {
-                    Sqlite.bindDouble(statement, key, value);
-                }
-                else if (value instanceof byte[]) {
-                    Sqlite.bindBlob(statement, key, value);
-                }
-                else {
-                    // throw exception?
-                }
+            if (value instanceof String) {
+                Sqlite.bindString(statement, key, (String)value);
+            }
+            else if (value instanceof Integer) {
+                Sqlite.bindInt(statement, key, (Integer)value);
+            }
+            else if (value instanceof Double) {
+                Sqlite.bindDouble(statement, key, (Double)value);
+            }
+            else if (value instanceof byte[]) {
+                Sqlite.bindBlob(statement, key, (byte[])value);
+            }
+            else {
+                // throw exception?
             }
         }
 

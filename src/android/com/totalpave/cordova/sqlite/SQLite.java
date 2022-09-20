@@ -21,8 +21,12 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.LOG;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONException;
+
+import java.net.URI;
 import java.util.HashMap;
+import android.net.Uri;
 
 public class SQLite extends CordovaPlugin {
     public static final String LOG_TAG = "TP-SQLite";
@@ -31,7 +35,7 @@ public class SQLite extends CordovaPlugin {
 
     @Override
     protected void pluginInitialize() {
-        $databases = new HashMap<>();
+        $databases = new HashMap<Long, Database>();
     }
 
     @Override
@@ -42,7 +46,14 @@ public class SQLite extends CordovaPlugin {
             int openFlags = args.getInt(1);
 
             Long dbHandle = $openDatabase(dbPath, openFlags);
-            callback.success(dbHandle);
+            if (dbHandle != null) {
+                JSONObject response = new JSONObject();
+                response.put("dbHandle", dbHandle);
+                callback.success(response);
+            }
+            else {
+                callback.error("Unable to open database");
+            }
             return true;
         }
         else if (action.equals("query")) {
@@ -72,6 +83,7 @@ public class SQLite extends CordovaPlugin {
     }
     
     private final Long $openDatabase(String path, int openFlags) {
+        String parsedPath = $parsePath(path);
         Database db = new Database(path, openFlags);
         $databases.put(db.getHandle(), db);
         return db.getHandle();
@@ -86,5 +98,13 @@ public class SQLite extends CordovaPlugin {
         }
 
         return db.run(sql, params);
+    }
+
+    private final String $parsePath(String path) {
+        URI uri = Uri.parse(path);
+        Uri.Builder builder = uri.buildUpon();
+        builder.scheme(null);
+        uri = builder.build();
+        return uri.toString();
     }
 }

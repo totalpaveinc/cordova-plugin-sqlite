@@ -1,3 +1,5 @@
 www/*
 *.tsbuildinfo
 node_modules
+totalpave-cordova-plugin-sqlite-*.tgz
+
