@@ -28,6 +28,14 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [5.6 - setBytes](#56---setbytes)
   - [5.7 - setBlob](#57---setblob)
   - [5.8 - build](#58---build)
+- [6.0 - RawQuery](#60-rawquery)
+  - [6.1 - constructor](#61-constructor)
+- [7.0 - StartTransactionQuery](#70-starttransactionquery)
+  - [7.1 - constructor](#71-constructor)
+- [8.0 - CommitTransactionQuery](#80-committransactionquery)
+  - [8.1 - constructor](#81-constructor)
+- [9.0 - RollbackTransactionQuery](#90-rollbacktransactionquery)
+  - [9.1 - constructor](#91-constructor)
   
 
 ## 1.0 - Plugin Namespace
@@ -296,4 +304,57 @@ The params object may be omitted if the SQL statement contains no named paramete
 
 ```typescript
 constructor(sql: string, params?: TParams);
+```
+
+## 7.0 StartTransactionQuery
+
+Prebuilt query to start a transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
+
+`StartTransactionQuery` accepts a `TransactionMode` enumeration, that directly ties to `DEFERRED`, `IMMEDIATE`, or `EXCLUSIVE` transactions.
+
+Like the SQLite default, `DEFERRED` is chosen by default if not provided.
+
+This query can be executed multiple times, but SQLite does not have a concept of nested transactions. Therefore, do not start a transaction if there is already an active transaction.
+
+
+### 7.1 constructor
+
+The constructor optionally accepts 1 parameter, `TransactionMode`. it defaults to `TransactionMode.DEFERRED`.
+
+##### Signature
+
+```typescript
+constructor(mode: TransactionMode = TransactionMode.DEFERRED);
+```
+
+## 8.0 CommitTransactionQuery
+
+A prebuilt query to commit an active transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
+
+It is an error to commit a transaction on a database without an active transaction.
+
+### 8.1 constructor
+
+The constructor accepts no arguments.
+
+##### Signature
+
+```typescript
+constructor();
+```
+
+## 9.0 RollbackTransactionQuery
+
+A prebuilt query to rollback an active transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
+
+It is an error to rollback a transaction on a database without an active transaction.
+
+### 9.1 constructor
+
+The constructor accepts no arguments.
+
+##### Signature
+
+```typescript
+constructor();
 ```
