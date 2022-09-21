@@ -67,7 +67,7 @@ public class SQLite extends CordovaPlugin {
             return true;
         }
         else if (action.equals("close")) {
-            long dbHandle = args.getInt(0);
+            long dbHandle = args.getJSONObject(0).getLong("dbHandle");
             Database db = $databases.get(dbHandle);
             if (db == null) {
                 callback.success();
