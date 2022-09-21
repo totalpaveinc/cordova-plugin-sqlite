@@ -196,7 +196,7 @@ export abstract class Query<TParams extends TParamsObject | void, TResponse> {
                 resolve(data);
             }, (error: any) => {
                 reject(error);
-            }, SERVICE_NAME, 'query', [db.getHandle(), this.getQuery(), this.$params]);
+            }, SERVICE_NAME, 'query', [{dbHandle: db.getHandle()}, this.getQuery(), this.$params]);
         });
     }
 }

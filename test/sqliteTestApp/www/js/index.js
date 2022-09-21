@@ -75,12 +75,27 @@ function onDeviceReady() {
         await new InsertPersonQuery(
             await builder.build()
         ).execute(db);
-        //     {
-        //     id: 1,
-        //     name: 'Tyler Breau',
-        //     height: 5.8,
-        //     data: new Blob([[0x11]])
-        // }).execute(db);
+
+        await new window.totalpave.sqlite.StartTransactionQuery().execute(db);
+        await new InsertPersonQuery({
+            id: 4,
+            name: 'John Smith',
+            height: 3.14,
+            data: null
+        }).execute(db);
+        await new InsertPersonQuery({
+            id: 5,
+            name: 'Norman Breau',
+            height: 5.7,
+            data: null
+        }).execute(db);
+
+        builder.setNumber('id', 6);
+
+        await new InsertPersonQuery(
+            await builder.build()
+        ).execute(db);
+        await new window.totalpave.sqlite.CommitTransactionQuery().execute(db);
 
         let results = await new window.totalpave.sqlite.RawQuery('SELECT * FROM test').execute(db);
         for (let i = 0; i < results.length; i++) {

@@ -43,12 +43,12 @@ export class SQLite {
     }
 
     public static async open(path: string, writeAccess: boolean): Promise<Database> {
-        let dbHandle: number = await this.$exec<[string, number], number>('open', [path, writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY]);
+        let dbHandle: number = (await this.$exec<[string, number], {dbHandle: number}>('open', [path, writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY])).dbHandle;
         return new Database(dbHandle);
     }
 
     public static async close(db: Database): Promise<void> {
-        await this.$exec<[number], void>('close', [db.getHandle()]);
+        await this.$exec<[{dbHandle: number}], void>('close', [ { "dbHandle": db.getHandle() } ]);
         db.__close();
     }
 };
