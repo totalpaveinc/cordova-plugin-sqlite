@@ -23,10 +23,9 @@ import org.apache.cordova.LOG;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
-
-import java.net.URI;
 import java.util.HashMap;
-import android.net.Uri;
+import java.net.URI;
+import java.io.File;
 
 public class SQLite extends CordovaPlugin {
     public static final String LOG_TAG = "TP-SQLite";
@@ -57,7 +56,9 @@ public class SQLite extends CordovaPlugin {
             return true;
         }
         else if (action.equals("query")) {
-            long dbHandle = args.getInt(0);
+            // The cordova API doesn't have a long version, but JSON objects does,
+            // so to ensure int range safety when handling pointers, the dbHandle is wrapped in a JSON object.
+            long dbHandle = args.getJSONObject(0).getLong("dbHandle");
             String sql = args.getString(1);
             JSONObject params = args.optJSONObject(2);
 
@@ -83,8 +84,7 @@ public class SQLite extends CordovaPlugin {
     }
     
     private final Long $openDatabase(String path, int openFlags) {
-        String parsedPath = $parsePath(path);
-        Database db = new Database(path, openFlags);
+        Database db = new Database($parsePath(path), openFlags);
         $databases.put(db.getHandle(), db);
         return db.getHandle();
     }
@@ -101,10 +101,8 @@ public class SQLite extends CordovaPlugin {
     }
 
     private final String $parsePath(String path) {
-        URI uri = Uri.parse(path);
-        Uri.Builder builder = uri.buildUpon();
-        builder.scheme(null);
-        uri = builder.build();
-        return uri.toString();
+        URI uri = URI.create(path);
+        File file = new File(uri);
+        return file.getAbsolutePath();
     }
 }

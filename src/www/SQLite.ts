@@ -45,16 +45,6 @@ export class SQLite {
     public static async open(path: string, writeAccess: boolean): Promise<Database> {
         let dbHandle: number = await this.$exec<[string, number], number>('open', [path, writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY]);
         return new Database(dbHandle);
-        // return new Promise<Database>((resolve, reject) => {
-        //     cordova.exec((response) => {
-        //         console.log('RESPONSE', response);
-        //         resolve(null);
-        //     }, (error: any) => {
-        //         reject(error);
-        //     }, SERVICE_NAME, 'open', [
-        //         path, writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY
-        //     ]);
-        // });
     }
 
     public static async close(db: Database): Promise<void> {

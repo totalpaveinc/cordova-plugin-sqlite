@@ -46,25 +46,46 @@ public class Database {
     public JSONArray run(String sql, JSONObject vars) throws JSONException {
         long statement = Sqlite.prepare($handle, sql);
 
-        Iterator<String> keys = vars.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            Object value = vars.get(key);
+        if (vars != null) {
+            Iterator<String> keys = vars.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Object value = vars.get(key);
 
-            if (value instanceof String) {
-                Sqlite.bindString(statement, key, (String)value);
-            }
-            else if (value instanceof Integer) {
-                Sqlite.bindInt(statement, key, (Integer)value);
-            }
-            else if (value instanceof Double) {
-                Sqlite.bindDouble(statement, key, (Double)value);
-            }
-            else if (value instanceof byte[]) {
-                Sqlite.bindBlob(statement, key, (byte[])value);
-            }
-            else {
-                // throw exception?
+                if (value == JSONObject.NULL) {
+                    Sqlite.bindNull(statement, key);
+                }
+                else if (value instanceof String) {
+                    Sqlite.bindString(statement, key, (String)value);
+                }
+                else if (value instanceof Integer) {
+                    Sqlite.bindInt(statement, key, (Integer)value);
+                }
+                else if (value instanceof Double) {
+                    Sqlite.bindDouble(statement, key, (Double)value);
+                }
+                else if (value instanceof JSONObject) {
+                    // This is a complex object, such as an object representing  binary data.
+                    JSONObject v = (JSONObject)value;
+                    String objType = v.getString("type");
+                    if (objType.equals("bytearray")) {
+                        JSONArray jByteArray = v.getJSONArray("value");
+                        byte[] bytes = new byte[jByteArray.length()];
+                        for (int i = 0; i < jByteArray.length(); i++) {
+                            // The 0xFF mask is to trim off any value that is larger than 8 bits.
+                            // The expected array should be a int8 array.
+                            bytes[i] = (byte)(((int)jByteArray.get(i)) & 0xFF);
+                        }
+
+                        Sqlite.bindBlob(statement, key, bytes);
+                    }
+                    else {
+                        throw new RuntimeException("Unhandled Complex Parameter Object");
+                    }
+                }
+                else {
+                    throw new RuntimeException("Unhandled Parameter Type");
+                }
             }
         }
 

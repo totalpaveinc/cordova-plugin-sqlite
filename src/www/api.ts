@@ -1,7 +1,12 @@
 
 // Core API
 export {Database} from './Database';
-export {Query} from './Query';
+export {
+    Query,
+    ParamBuilder,
+    IByteArray,
+    IComplexParamValue
+} from './Query';
 export {SQLite} from './SQLite';
 
 // Prebuilt Queries
