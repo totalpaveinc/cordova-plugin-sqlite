@@ -181,7 +181,7 @@ export class ParamBuilder {
     }
 }
 
-export abstract class Query<TParams, TResponse> {
+export abstract class Query<TParams extends TParamsObject | void, TResponse> {
     private $params: TParams;
 
     public constructor(params: TParams) {

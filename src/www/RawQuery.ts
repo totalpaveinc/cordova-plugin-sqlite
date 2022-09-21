@@ -14,12 +14,12 @@
    limitations under the License.
 */
 
-import {Query} from './Query';
+import {Query, TParamsObject} from './Query';
 
-export class RawQuery extends Query<any, any> {
+export class RawQuery<TParams extends TParamsObject = TParamsObject, TResponse = any> extends Query<TParams, TResponse> {
     private $sql: string;
 
-    public constructor(sql: string, params: any) {
+    public constructor(sql: string, params?: TParams) {
         super(params);
         this.$sql = sql;
     }
