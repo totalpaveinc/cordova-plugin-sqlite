@@ -19,6 +19,7 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [4.2 - Constructor](#42-constructor)
   - [4.3 - getQuery](#43-getquery)
   - [4.4 - execute](#44-execute)
+  - [4.5 - Query Results](#45-note-on-data-types-and-return-types)
 - [5.0 - ParamBuilder](#50-parambuilder)
   - [5.1 - constructor](#51-constructor)
   - [5.2 - setNumber](#52---setnumber)
@@ -171,6 +172,26 @@ Each `execute` statement internally prepares a new SQLite statement context and 
 The return type is the generic type `TResponse`. The return type is not known at the abstract level, but is generally `void` for any query that is not a `SELECT` query.
 
 For `SELECT` queries, the return type is generally an array of json objects, whose properties are keyed by the select query columns.
+
+### 4.5 Note on Data Types and Return Types
+
+SQLite data types are quite primitive, and supports generally 4 different data types:
+ - integers (int, size are dynamic depending on the magnitude of the value, could be 0, 1, 2, 3, 4, 5, or 8 bytes)
+ - real (8-byte IEEE floating point number, e.g. `double` type)
+ - Text (Strings in UTF-8)
+ - Blob (Binary data untouched)
+
+Query parameters may accept additional types, which may not translate back to their original type on a select query. For example, a `boolean` type will be converted to an `integer` value of `0` or `1`, and is expected to be stored in an `integer` typed column. Selecting the column will simply return the data as an `integer`.
+
+The [ParamBuilder](#50-parambuilder) API accepts several ways of providing blobs, including using `Blob`, `ArrayBuffer`, or `Uint8Array` types. These types gets converted to a special format to signal the native side that the data represents a `Blob`. Selecting a blob however will yield a standard JS array of numbers. It's up to the client to take the array and reconstruct the blob as they see fit, for example:
+
+```typescript
+let blob: Blob = new Blob([
+    new Uint8Array(result.blob)
+]);
+```
+
+This isn't done automatically to avoid iterating over the resultset, when the application is likely to do it anyway.
 
 ##### Signature
 
