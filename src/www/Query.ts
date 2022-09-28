@@ -16,12 +16,19 @@
 
 import {SERVICE_NAME} from './SQLite';
 import { Database } from './Database';
+import { SQLiteDouble, SQLiteInteger, SQLiteText } from './SQLiteTypes';
 
+/**
+ * @internal
+ */
 export interface IComplexParamValue<T> {
     type: string;
     value: T
 }
 
+/**
+ * @internal - Do not construct this manually. Use `SQLiteBlob` type instead.
+ */
 export interface IByteArray extends IComplexParamValue<Array<number>> {
     type: 'bytearray';
 }
@@ -32,13 +39,12 @@ export interface IByteArray extends IComplexParamValue<Array<number>> {
 //     type: 'date'
 // }
 
-type TInternalParamsValue = string | number | IByteArray /*| IDateValue*/ | Blob | boolean | Date | ArrayBuffer | Uint8Array;
-type TInternalParamsObject = Map<string, TInternalParamsValue>;
 type TInternalTypedArray =  Uint8Array  | Int8Array     |
                             Uint16Array | Int16Array    |
                             Uint32Array | Int32Array;
+type TBinaryTypes = Blob | ArrayBuffer | TInternalTypedArray;
 
-export type TParamsValue = string | number | IByteArray/* | IDateValue*/;
+export type TParamsValue = SQLiteText | SQLiteDouble | SQLiteInteger | IByteArray/* | IDateValue*/;
 export type TParamsObject = Record<string, TParamsValue>;
 
 /**
@@ -51,40 +57,15 @@ export type TParamsObject = Record<string, TParamsValue>;
  * Blobs/byte arrays are supported, but requires additional work, where this ParamBuilder
  * handles.
  */
-export class ParamBuilder {
-    private $params: TInternalParamsObject;
+export class ParamBuilder<T> {
+    private $params: any;
 
     public constructor() {
-        this.$params = new Map();
+        this.$params = {};
     }
 
-    public setNumber(key: string, value: number): ParamBuilder {
-        this.$params.set(key, value);
-        return this;
-    }
-
-    public setBoolean(key: string, value: boolean): ParamBuilder {
-        this.$params.set(key, value ? 1 : 0);
-        return this;
-    }
-
-    public setString(key: string, value: string): ParamBuilder {
-        this.$params.set(key, value);
-        return this;
-    }
-
-    public setArrayBuffer(key: string, value: ArrayBuffer): ParamBuilder {
-        this.$params.set(key, value);
-        return this;
-    }
-
-    public setBytes(key: string, value: Uint8Array): ParamBuilder {
-        this.$params.set(key, value);
-        return this;
-    }
-
-    public setBlob(key: string, value: Blob): ParamBuilder {
-        this.$params.set(key, value);
+    public set(key: keyof T, value: T[keyof T] | TBinaryTypes): ParamBuilder<T> {
+        this.$params[key] = value;
         return this;
     }
 
@@ -94,10 +75,11 @@ export class ParamBuilder {
      * 
      * @returns
      */
-    public async build(): Promise<TParamsObject> {
-        let out: TParamsObject = {};
+    public async build(): Promise<T> {
+        let out: any = {};
         
-        for (let [key, v] of this.$params) {
+        for (let key in this.$params) {
+            let v: any = this.$params[key];
             if (typeof v === 'string' || typeof v === 'number') {
                 out[key] = v;
             }
@@ -111,7 +93,7 @@ export class ParamBuilder {
                 };
             }
             /*else if (v instanceof Date) {
-                out[key] = {
+                out[k] = {
                     type: 'date',
                     value: v.getTime()
                 };
@@ -122,7 +104,14 @@ export class ParamBuilder {
                     value: this.$normalizeBufferedArray(new Uint8Array(v))
                 };
             }
-            else if (v instanceof Uint8Array) {
+            else if (
+                v instanceof Uint8Array ||
+                v instanceof Int8Array ||
+                v instanceof Uint16Array ||
+                v instanceof Int16Array ||
+                v instanceof Uint32Array ||
+                v instanceof Int32Array
+             ) {
                 out[key] = {
                     type: 'bytearray',
                     value: this.$normalizeBufferedArray(v)
@@ -133,7 +122,7 @@ export class ParamBuilder {
             }
         }
 
-        return out;
+        return <T>out;
     }
 
     private $normalizeBufferedArray(ta: TInternalTypedArray): Array<number> {
@@ -181,7 +170,7 @@ export class ParamBuilder {
     }
 }
 
-export abstract class Query<TParams extends TParamsObject | void, TResponse> {
+export abstract class Query<TParams, TResponse> {
     private $params: TParams;
 
     public constructor(params: TParams) {

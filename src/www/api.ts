@@ -15,3 +15,6 @@ export {RawQuery} from './RawQuery';
 export {StartTransactionQuery} from './StartTransactionQuery';
 export {CommitTransactionQuery} from './CommitTransactionQuery';
 export {RollbackTransactionQuery} from './RollbackTransactionQuery';
+
+// TypeScript API
+export * from './SQLiteTypes';

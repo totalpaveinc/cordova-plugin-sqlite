@@ -16,33 +16,52 @@
 
 // Wait for the deviceready event before using any of Cordova's device APIs.
 // See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
+
+import {
+    SQLite,
+    RawQuery,
+    Query,
+    ParamBuilder,
+    StartTransactionQuery,
+    CommitTransactionQuery,
+    SQLiteInteger,
+    SQLiteText,
+    SQLiteDouble,
+    SQLiteBlob
+} from '@totalpave/cordova-plugin-sqlite';
+
+interface IInsertPersonQueryParams {
+    id: SQLiteInteger;
+    name: SQLiteText;
+    height: SQLiteDouble;
+    data?: SQLiteBlob | null;
+}
+
+class InsertPersonQuery extends Query<IInsertPersonQueryParams, void> {
+    getQuery() {
+        return `
+            INSERT INTO test VALUES (
+                :id,
+                :name,
+                :height,
+                :data
+            )
+        `;
+    }
+}
+
 document.addEventListener('deviceready', onDeviceReady, false);
 
 function onDeviceReady() {
     // Cordova is now initialized. Have fun!
 
     console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
-    document.getElementById('deviceready').classList.add('ready');
-
-    class InsertPersonQuery extends window.totalpave.sqlite.Query {
-        getQuery() {
-            return `
-                INSERT INTO test VALUES (
-                    :id,
-                    :name,
-                    :height,
-                    :data
-                )
-            `;
-        }
-    }
-
-    const SQLite = window.totalpave.sqlite.SQLite;
+    document.getElementById('deviceready')?.classList.add('ready');
 
     (async () => {
         let db = await SQLite.open(cordova.file.dataDirectory + 'test.db', true);
 
-        await new window.totalpave.sqlite.RawQuery(`
+        await new RawQuery(`
             CREATE TABLE IF NOT EXISTS test (
                 id INTEGER NOT NULL,
                 name TEXT NOT NULL,
@@ -51,7 +70,7 @@ function onDeviceReady() {
             )
         `).execute(db);
 
-        await new window.totalpave.sqlite.RawQuery(`DELETE FROM test`).execute(db);
+        await new RawQuery(`DELETE FROM test`).execute(db);
         
         await new InsertPersonQuery({
             id: 1,
@@ -66,17 +85,22 @@ function onDeviceReady() {
             data: null
         }).execute(db);
 
-        let builder = new window.totalpave.sqlite.ParamBuilder();
-        builder.setNumber('id', 3)
-            .setString('name', 'Tyler Breau')
-            .setNumber('height', 5.8)
-            .setBlob('data', new Blob([new Uint8Array([0x11])]));
+        let builder: ParamBuilder<IInsertPersonQueryParams> = new ParamBuilder();
+        // builder.setNumber('id', 3)
+        //     .setString('name', 'Tyler Breau')
+        //     .setNumber('height', 5.8)
+        //     .setBlob('data', new Blob([new Uint8Array([0x11])]));
+        builder
+            .set('id', 3)
+            .set('name', 'Tyler Breau')
+            .set('height', 5.8)
+            .set('data', new Blob([new Uint8Array([0x11])]));
 
         await new InsertPersonQuery(
             await builder.build()
         ).execute(db);
 
-        await new window.totalpave.sqlite.StartTransactionQuery().execute(db);
+        await new StartTransactionQuery().execute(db);
         await new InsertPersonQuery({
             id: 4,
             name: 'John Smith',
@@ -90,14 +114,14 @@ function onDeviceReady() {
             data: null
         }).execute(db);
 
-        builder.setNumber('id', 6);
+        builder.set('id', 6);
 
         await new InsertPersonQuery(
             await builder.build()
         ).execute(db);
-        await new window.totalpave.sqlite.CommitTransactionQuery().execute(db);
+        await new CommitTransactionQuery().execute(db);
 
-        let results = await new window.totalpave.sqlite.RawQuery('SELECT * FROM test').execute(db);
+        let results = await new RawQuery('SELECT * FROM test').execute(db);
         for (let i = 0; i < results.length; i++) {
             console.log('RESULT', i, results[i]);
         }

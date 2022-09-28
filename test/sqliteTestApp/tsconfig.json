@@ -1,0 +1,6 @@
+{
+    "extends": "../../tsconfig.json",
+    "files": [
+        "node_modules/cordova-plugin-file/types/index.d.ts"
+    ]
+}

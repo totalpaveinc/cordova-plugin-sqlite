@@ -22,13 +22,8 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [4.5 - Query Results](#45-note-on-data-types-and-return-types)
 - [5.0 - ParamBuilder](#50-parambuilder)
   - [5.1 - constructor](#51-constructor)
-  - [5.2 - setNumber](#52---setnumber)
-  - [5.3 - setBoolean](#53---setboolean)
-  - [5.4 - setString](#54---setstring)
-  - [5.5 - setArrayBuffer](#55---setarraybuffer)
-  - [5.6 - setBytes](#56---setbytes)
-  - [5.7 - setBlob](#57---setblob)
-  - [5.8 - build](#58---build)
+  - [5.2 - setNumber](#52---set)
+  - [5.3 - build](#53---build)
 - [6.0 - RawQuery](#60-rawquery)
   - [6.1 - constructor](#61-constructor)
 - [7.0 - StartTransactionQuery](#70-starttransactionquery)
@@ -125,13 +120,28 @@ The `TParamsObject` is an object that can hold the following structure:
 
 ```typescript
 interface TParamsObject {
-    [key: string]: string | number | IByteArray;
+    [key: string]: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob;
 }
 ```
 
-The JSON object can have any number of properties consisting of `string`, `number`, or `IByteArray` types.
+The JSON object can have any number of properties consisting of the following types:
+- `SQLiteText`
+- `SQLiteDouble`
+- `SQLiteInteger`
+- `SQLiteBlob`
 
-`IByteArray` is a special structure not intended to be crafted manually. Use [ParamBuilder]() to build a `TParamsObject` that contains byte arrays or other binary blob data.
+The `SQLite*` types are aliases to the following types.
+
+|Type|Alias|
+|---|---|
+|`SQLiteText`|`string`|
+|`SQLiteDouble`|`number`|
+|`SQLiteInteger`|`number`|
+|`SQLiteBlob`|`IByteArray`|
+
+The `SQLiteDouble` and `SQLiteInteger` are aliases together as JavaScript only supports a single numerical type, `number`. The typing is for expression of intent by the developer, based on database schema.
+
+`IByteArray` is a special structure not intended to be crafted manually. Use [ParamBuilder](#50-parambuilder) to build a `TParamsObject` that contains byte arrays or other binary blob data. Do not craft an `IByteArray` buffer manually as it is an implementation detail, and may change without making a major release.
 
 ### 4.2 Constructor
 
@@ -213,11 +223,19 @@ Each setter method returns an instance of hte `ParamBuilder` allowing you to cha
 For example:
 
 ```typescript
-let builder: ParamBuilder = new ParamBuilder();
-let params: TParamsObject = await builder.setNumber('height', 5.7)
-    .setBoolean('prettyFly', true)
-    .setString('name', 'John Smith')
-    .build();
+interface IQueryParams {
+  id: SQLiteInteger;
+  name: SQLiteText;
+  height: SQLiteDouble;
+  data: SQLiteBlob;
+}
+let builder: ParamBuilder<QueryParamsType> = new ParamBuilder();
+let params: TParamsObject = await builder
+  .set('id', 1)
+  .set('height', 5.7)
+  .set('name', 'John Smith')
+  .set('data', new Uint8Array([0x11])) // Also accepts other typed arrays, ArrayBuffer, or Blob
+  .build();
 ```
 
 ### 5.1 Constructor
@@ -230,68 +248,26 @@ A simple constructor that accepts no parameters.
 constructor();
 ```
 
-### 5.2 - setNumber
+### 5.2 - set
 
-Sets a number value at the given `key`. Number will either be treated as an `int` (16 bit) or a `double`, depending on the column type of the SQLite table.
+Sets a number value at the given `key`. `value` can accept multiple types:
+  - `SQLiteText` (`string`)
+  - `SQLiteInteger` (`number`)
+  - `SQLiteDouble` (`number`)
+  - `SQLiteBlob` (`Blob`, `ArrayBuffer`, or one of the Typed Array types.)
 
-##### Signature
+`SQLiteInteger` and `SQLiteDouble` are synonymous. They both refer to the JavaScript `number` type, but can be used by query authors to explicitly state intent of parameter typings.
 
-```typescript
-setNumber(key: string, value: number): ParamBuilder
-```
-
-### 5.3 - setBoolean
-
-Sets a boolean at the given `key`. SQLite does not support booleans, so this method will convert the boolean to `1` for true and `0` for false.
+`SQLiteBlob` or any of the other binary types will produce an internal `IByteArray` representation. This is an implementation detail and `IByteArray` should not be constructed manually.
 
 ##### Signature
 
 ```typescript
-setBoolean(key: string, value: boolean): ParamBuilder
+type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array;
+set(key: string, value: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob | Blob | ArrayBuffer | TypedArray): ParamBuilder
 ```
 
-### 5.4 - setString
-
-Sets a string at the given `key`. Strings must be UTF-8.
-JavaScript UTF-16 strings are converted to UTF-8.
-
-##### Signature
-
-```typescript
-setString(key: string, value: string): ParamBuilder
-```
-
-### 5.5 - setArrayBuffer
-
-Sets a binary blob provided by the given `ArrayBuffer` at the given `key`. As blobs cannot be sent over the bridge, this creates an internal structure to signal the native that the dataset represents a blob and thus should use SQLite's blob binding method.
-
-##### Signature
-
-```typescript
-setArrayBuffer(key: string, value: ArrayBuffer): ParamBuilder
-```
-
-### 5.6 - setBytes
-
-Sets a binary blob provided by the given `Uint8Array` at the given `key`. As blobs cannot be sent over the bridge, this creates an internal structure to signal the native that the dataset represents a blob and thus should use SQLite's blob binding method.
-
-##### Signature
-
-```typescript
-setBytes(key: string, value: Uint8Array): ParamBuilder
-```
-
-### 5.7 - setBlob
-
-Sets a binary blob at the given `key`. As blobs cannot be sent over the bridge, this creates an internal structure to signal the native that the dataset represents a blob and thus should use SQLite's blob binding method.
-
-##### Signature
-
-```typescript
-setBlob(key: string, value: Blob): ParamBuilder
-```
-
-### 5.8 - build
+### 5.3 - build
 
 Builds a [TParamsObject](#41-tparamsobject) to be used by a [Query](#40---query).
 
