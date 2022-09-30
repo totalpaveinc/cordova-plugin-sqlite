@@ -16,7 +16,7 @@
 
 import {Query, TParamsObject} from './Query';
 
-export class RawQuery<TParams extends TParamsObject = TParamsObject, TResponse = any> extends Query<TParams, TResponse> {
+export class RawQuery<TParams extends TParamsObject | void = TParamsObject, TResponse = any> extends Query<TParams, TResponse> {
     private $sql: string;
 
     public constructor(sql: string, params?: TParams) {
