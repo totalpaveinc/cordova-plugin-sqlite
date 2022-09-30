@@ -18,3 +18,4 @@ export {RollbackTransactionQuery} from './RollbackTransactionQuery';
 
 // TypeScript API
 export * from './SQLiteTypes';
+export {IDatabaseHandle} from './IDatabaseHandle';
