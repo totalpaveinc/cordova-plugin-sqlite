@@ -1,6 +1,6 @@
 {
   "name": "@totalpave/cordova-plugin-sqlite",
-  "version": "0.0.0",
+  "version": "0.0.0-dev.0",
   "description": "SQLite plugin for Cordova Android & iOS",
   "main": "www/sqlite.js",
   "types": "www/api.d.ts",

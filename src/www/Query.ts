@@ -15,8 +15,8 @@
 */
 
 import {SERVICE_NAME} from './SQLite';
-import { Database } from './Database';
 import { SQLiteDouble, SQLiteInteger, SQLiteText } from './SQLiteTypes';
+import {IDatabaseHandle} from './IDatabaseHandle';
 
 /**
  * @internal
@@ -179,7 +179,7 @@ export abstract class Query<TParams, TResponse> {
 
     public abstract getQuery(): string;
 
-    public async execute(db: Database): Promise<TResponse> {
+    public async execute(db: IDatabaseHandle): Promise<TResponse> {
         return new Promise<TResponse>((resolve, reject) => {
             cordova.exec((data: any) => {
                 resolve(data);

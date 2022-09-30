@@ -14,26 +14,6 @@
    limitations under the License.
 */
 
-import {IDatabaseHandle} from './IDatabaseHandle';
-
-export class Database implements IDatabaseHandle {
-    private $handle: number;
-    private $closed: boolean;
-
-    public constructor(handle: number) {
-        this.$handle = handle;
-        this.$closed = false;
-    }
-
-    public getHandle(): number {
-        return this.$handle;
-    }
-
-    public isClosed(): boolean {
-        return this.$closed;
-    }
-
-    public __close(): void {
-        this.$closed = true;
-    }
+export interface IDatabaseHandle {
+    getHandle(): number;
 }
