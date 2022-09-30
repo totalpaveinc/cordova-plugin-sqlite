@@ -4,6 +4,10 @@
   "description": "SQLite plugin for Cordova Android & iOS",
   "main": "www/sqlite.js",
   "types": "www/api.d.ts",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "test": "echo \"Error: no test specified\" && exit 1"
