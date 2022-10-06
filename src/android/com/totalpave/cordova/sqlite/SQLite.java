@@ -16,13 +16,15 @@
 
 package com.totalpave.cordova.sqlite;
 
+import com.totalpave.sqlite3.SqliteException;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CordovaWebView;
-import org.apache.cordova.LOG;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
+
+import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.net.URI;
 import java.io.File;
@@ -39,19 +41,19 @@ public class SQLite extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callback) throws JSONException {
-        // TODO: Handle exceptions...?
         if (action.equals("open")) {
             String dbPath = args.getString(0);
             int openFlags = args.getInt(1);
 
-            Long dbHandle = $openDatabase(dbPath, openFlags);
-            if (dbHandle != null) {
+            Long dbHandle;
+            try {
+                dbHandle = $openDatabase(dbPath, openFlags);
                 JSONObject response = new JSONObject();
                 response.put("dbHandle", dbHandle);
                 callback.success(response);
             }
-            else {
-                callback.error("Unable to open database");
+            catch (SqliteException ex) {
+                callback.error(ex.toDictionary());
             }
             return true;
         }
@@ -62,8 +64,13 @@ public class SQLite extends CordovaPlugin {
             String sql = args.getString(1);
             JSONObject params = args.optJSONObject(2);
 
-            JSONArray results = $query(dbHandle, sql, params);
-            callback.success(results);
+            try {
+                JSONArray results = $query(dbHandle, sql, params);
+                callback.success(results);
+            }
+            catch (SqliteException ex) {
+                callback.error(ex.toDictionary());
+            }
             return true;
         }
         else if (action.equals("close")) {
@@ -83,18 +90,17 @@ public class SQLite extends CordovaPlugin {
         return false;
     }
     
-    private final Long $openDatabase(String path, int openFlags) {
+    private final Long $openDatabase(String path, int openFlags) throws SqliteException {
         Database db = new Database($parsePath(path), openFlags);
         $databases.put(db.getHandle(), db);
         return db.getHandle();
     }
 
-    private final JSONArray $query(long dbHandle, String sql, JSONObject params) throws JSONException {
+    private final JSONArray $query(long dbHandle, String sql, JSONObject params) throws JSONException, SqliteException {
         Database db = $databases.get(dbHandle);
 
         if (db == null) {
-            // throw error;
-            return new JSONArray();
+            throw new SqliteException(Error.DOMAIN, "Database Not Found. Did you open your database before calling query?", Error.DATABASE_NOT_FOUND);
         }
 
         return db.run(sql, params);

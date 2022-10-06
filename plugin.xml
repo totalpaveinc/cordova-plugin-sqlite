@@ -31,13 +31,22 @@
 
     <source-file src="src/android/com/totalpave/cordova/sqlite/SQLite.java" target-dir="src/com/totalpave/cordova/sqlite" />
     <source-file src="src/android/com/totalpave/cordova/sqlite/Database.java" target-dir="src/com/totalpave/cordova/sqlite" />
+    <source-file src="src/android/com/totalpave/cordova/sqlite/Error.java" target-dir="src/com/totalpave/cordova/sqlite" />
   </platform>
 
   <platform name="ios">
     <config-file target="config.xml" parent="/*">
       <feature name="TPSQLite">
-        <!-- <param name="ios-package" value="TODO" /> -->
+        <param name="ios-package" value="SQLite" />
       </feature>
     </config-file>
+
+    <source-file src="src/ios/Database.mm" target-dir="totalpave/sqlite" />
+    <header-file src="src/ios/Database.h" target-dir="totalpave/sqlite" />
+    <source-file src="src/ios/SQLite.m" target-dir="totalpave/sqlite" />
+    <header-file src="src/ios/SQLite.h" target-dir="totalpave/sqlite" />
+    <header-file src="src/ios/Error.h" target-dir="totalpave/sqlite" />
+    <source-file src="src/ios/ErrorUtility.m" target-dir="totalpave/sqlite" />
+    <header-file src="src/ios/ErrorUtility.h" target-dir="totalpave/sqlite" />
   </platform>
 </plugin>

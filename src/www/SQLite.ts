@@ -15,6 +15,7 @@
 */
 
 import {Database} from './Database';
+import {IError} from './IError';
 
 enum OpenFlags {
     READ_ONLY       = 0x00000001,
@@ -36,7 +37,7 @@ export class SQLite {
         return new Promise<TResponse>((resolve, reject) => {
             cordova.exec((response) => {
                 resolve(response);
-            }, (error: any) => {
+            }, (error: IError) => {
                 reject(error);
             }, SERVICE_NAME, method, vargs);
         });
