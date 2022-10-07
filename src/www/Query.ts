@@ -17,6 +17,7 @@
 import {SERVICE_NAME} from './SQLite';
 import { SQLiteDouble, SQLiteInteger, SQLiteText } from './SQLiteTypes';
 import {IDatabaseHandle} from './IDatabaseHandle';
+import {IError} from './IError';
 
 /**
  * @internal
@@ -183,7 +184,7 @@ export abstract class Query<TParams, TResponse> {
         return new Promise<TResponse>((resolve, reject) => {
             cordova.exec((data: any) => {
                 resolve(data);
-            }, (error: any) => {
+            }, (error: IError) => {
                 reject(error);
             }, SERVICE_NAME, 'query', [{dbHandle: db.getHandle()}, this.getQuery(), this.$params]);
         });

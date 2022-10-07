@@ -14,8 +14,8 @@
   "author": "Apache Cordova Team",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@totalpave/cordova-plugin-libcxx": "^0.0.0",
-    "@totalpave/cordova-plugin-libsqlite": "^0.0.9",
+    "@totalpave/cordova-plugin-libcxx": "0.0.0",
+    "@totalpave/cordova-plugin-libsqlite": "0.0.9",
     "@totalpave/cordova-plugin-sqlite": "file:../../totalpave-cordova-plugin-sqlite-0.0.0.tgz",
     "@types/cordova": "0.0.34",
     "cordova-android": "^11.0.0",
@@ -35,6 +35,7 @@
       "@totalpave/cordova-plugin-sqlite": {}
     },
     "platforms": [
+      "ios",
       "android"
     ]
   }
