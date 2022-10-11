@@ -11,9 +11,26 @@
 
 - (id _Nonnull) initWithPath:(NSString*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
 {
-    // TODO: Ensure path directory exists
-    
     const char * cxxPath = [path UTF8String];
+
+    NSURL* filePath = [[NSURL fileURLWithPath:path] URLByDeletingLastPathComponent];
+    NSFileManager* fs = [[NSFileManager alloc] init];
+    if (![fs fileExistsAtPath:[filePath path]]) {
+        NSError* fsError;
+        [fs createDirectoryAtURL:filePath withIntermediateDirectories:true attributes:NULL error:&fsError];
+        if (fsError) {
+            error = [[NSError alloc]
+                initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                code:SQLITE_CANTOPEN
+                userInfo:@{
+                    NSLocalizedDescriptionKey: @"Could not make directories for path (" + std::string(cxxPath) + ")",
+                    NSUnderlyingErrorKey: fsError
+                }
+            ];
+            return self;
+        }
+    }
+
     int status = sqlite3_open_v2(cxxPath, &(self->$db), openFlags, nullptr);
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
