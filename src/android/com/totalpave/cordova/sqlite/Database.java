@@ -21,6 +21,7 @@ import com.totalpave.sqlite3.ColumnType;
 import com.totalpave.sqlite3.Statement;
 import com.totalpave.sqlite3.SqliteException;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -31,8 +32,12 @@ import org.json.JSONException;
 public class Database {
     private long $handle;
 
-    public Database(String path, int openFlags) throws SqliteException {
-        $handle = Sqlite.open(path, openFlags);
+    public Database(File fpath, int openFlags) throws SqliteException {
+        File directory = fpath.getParentFile();
+        if (!directory) {
+            directory.mkdirs();
+        }
+        $handle = Sqlite.open(fpath.getAbsolutePath(), openFlags);
     }
 
     public Long getHandle() {

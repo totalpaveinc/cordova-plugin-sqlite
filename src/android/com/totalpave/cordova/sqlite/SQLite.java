@@ -106,9 +106,9 @@ public class SQLite extends CordovaPlugin {
         return db.run(sql, params);
     }
 
-    private final String $parsePath(String path) {
+    private final File $parsePath(String path) {
         URI uri = URI.create(path);
         File file = new File(uri);
-        return file.getAbsolutePath();
+        return file;
     }
 }

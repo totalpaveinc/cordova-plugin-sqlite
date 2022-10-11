@@ -11,6 +11,8 @@
 
 - (id _Nonnull) initWithPath:(NSString*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
 {
+    // TODO: Ensure path directory exists
+    
     const char * cxxPath = [path UTF8String];
     int status = sqlite3_open_v2(cxxPath, &(self->$db), openFlags, nullptr);
     if (status != SQLITE_OK) {
