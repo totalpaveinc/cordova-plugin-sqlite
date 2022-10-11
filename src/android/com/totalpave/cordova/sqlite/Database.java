@@ -34,7 +34,7 @@ public class Database {
 
     public Database(File fpath, int openFlags) throws SqliteException {
         File directory = fpath.getParentFile();
-        if (!directory) {
+        if (directory != null) {
             directory.mkdirs();
         }
         $handle = Sqlite.open(fpath.getAbsolutePath(), openFlags);
