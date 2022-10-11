@@ -177,7 +177,7 @@
             }
             else if ([value isKindOfClass:[NSString class]]) {
                 const char * val = [value UTF8String];
-                status = sqlite3_bind_text(statement, index, val, (int)strlen(val), nullptr);
+                status = sqlite3_bind_text(statement, index, val, (int)strlen(val), SQLITE_TRANSIENT);
             }
             else if ([value isKindOfClass:[NSNumber class]]) {
                 if (fmod([value doubleValue], 1) == 0.0) {
@@ -196,7 +196,7 @@
                     for (int i = 0, length = (int)jByteArray.count; i < length; ++i) {
                         bytes[i] = [[jByteArray objectAtIndex:i] intValue] & 0xFF;
                     }
-                    status = sqlite3_bind_blob(statement, index, &bytes, (int)jByteArray.count - 1, nullptr);
+                    status = sqlite3_bind_blob(statement, index, &bytes, (int)jByteArray.count - 1, SQLITE_TRANSIENT);
                 }
                 else {
                     *error = [[NSError alloc]
