@@ -15,10 +15,12 @@
 
 -(void)open:(CDVInvokedUrlCommand *)command
 {
-    NSURL* dbPath = [[NSURL alloc] initFileURLWithPath:[command.arguments objectAtIndex:0]];
-    int openFlags = [[command.arguments objectAtIndex:1] intValue];
     NSError* error;
-    Database *db = [[Database alloc] initWithPath: [dbPath path] openFlags: openFlags error:&error];
+    Database *db = [[Database alloc]
+        initWithPath: [NSURL URLWithString: [command.arguments objectAtIndex:0]]
+        openFlags: [[command.arguments objectAtIndex:1] intValue]
+        error:&error
+    ];
     if (error) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
@@ -29,9 +31,9 @@
     }
     else {
         NSNumber* handle = [db getHandle];
-        [self->$databases setValue:db forKey:[handle stringValue]];
-        NSDictionary* response = [[NSDictionary alloc] init];
-        [response setValue:handle forKey:@"dbHandle"];
+        [self->$databases setObject:db forKey:handle];
+        NSMutableDictionary* response = [[NSMutableDictionary alloc] init];
+        [response setObject:handle forKey:@"dbHandle"];
         
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
@@ -47,8 +49,8 @@
 {
     NSString* sql = [command.arguments objectAtIndex:1];
     NSDictionary* params = [command.arguments objectAtIndex:2];
-    
-    Database* db = [self->$databases objectForKey:[command.arguments objectAtIndex:0]];
+
+    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
     NSArray* results;
     if ([db isEqual:[NSNull null]]) {
         [self.commandDelegate
@@ -84,7 +86,7 @@
 
 -(void)close:(CDVInvokedUrlCommand *)command
 {
-    Database* db = [self->$databases objectForKey:[command.arguments objectAtIndex:0]];
+    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
     if (![db isEqual:[NSNull null]]) {
         [db close];
         [self->$databases removeObjectForKey:[db getHandle]];

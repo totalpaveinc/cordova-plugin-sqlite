@@ -9,21 +9,21 @@
     sqlite3* $db;
 }
 
-- (id _Nonnull) initWithPath:(NSString*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
+- (id _Nonnull) initWithPath:(NSURL*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
 {
-    const char * cxxPath = [path UTF8String];
+    const char * cxxPath = [[path path] UTF8String];
 
-    NSURL* filePath = [[NSURL fileURLWithPath:path] URLByDeletingLastPathComponent];
+    NSURL* filePath = [path URLByDeletingLastPathComponent];
     NSFileManager* fs = [[NSFileManager alloc] init];
     if (![fs fileExistsAtPath:[filePath path]]) {
         NSError* fsError;
-        [fs createDirectoryAtURL:filePath withIntermediateDirectories:true attributes:NULL error:&fsError];
+        [fs createDirectoryAtURL:filePath withIntermediateDirectories:true attributes:nil error:&fsError];
         if (fsError) {
-            error = [[NSError alloc]
+            *error = [[NSError alloc]
                 initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
                 code:SQLITE_CANTOPEN
                 userInfo:@{
-                    NSLocalizedDescriptionKey: @"Could not make directories for path (" + std::string(cxxPath) + ")",
+                    NSLocalizedDescriptionKey: [NSString stringWithUTF8String: std::string("Could not make directories for path (" + std::string(cxxPath) + ")").c_str()],
                     NSUnderlyingErrorKey: fsError
                 }
             ];
@@ -118,13 +118,13 @@
             }
         ];
         sqlite3_finalize(statement);
-        return NULL;
+        return nil;
     }
 
     [self $bindParams:statement params:params error: error];
-    if (*error != NULL) {
+    if (*error != nil) {
         sqlite3_finalize(statement);
-        return NULL;
+        return nil;
     }
     
     NSMutableArray* results = [[NSMutableArray alloc] init];
@@ -135,9 +135,9 @@
 
         if (status == SQLITE_ROW) {
             [results addObject:[self $buildRowObject:statement columnCount: columnCount error: error]];
-                if (*error != NULL) {
+                if (*error != nil) {
                     sqlite3_finalize(statement);
-                    return NULL;
+                    return nil;
                 }
         }
         else if (status == SQLITE_DONE) {
@@ -153,7 +153,7 @@
                 }
             ];
             sqlite3_finalize(statement);
-            return NULL;
+            return nil;
         }
     }
     
@@ -167,7 +167,7 @@
 }
 
 - (void) $bindParams:(sqlite3_stmt*_Nonnull) statement params:(NSDictionary*_Nullable) params error:(NSError*_Nullable*_Nonnull) error {
-    if ([params isEqual:[NSNull null]]) {
+    if (![params isEqual:[NSNull null]]) {
         for (NSString* key in params) {
             id value = [params valueForKey:key];
             int index = TP::sqlite::lookupVariableIndex(statement, [key UTF8String]);
@@ -302,7 +302,7 @@
                     ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
                 }
             ];
-            return NULL;
+            return nil;
         }
         [row setValue:value forKey:columnName];
     }
