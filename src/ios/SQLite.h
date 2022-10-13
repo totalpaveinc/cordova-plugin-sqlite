@@ -3,4 +3,8 @@
 
 @interface SQLite : CDVPlugin
 
+-(void)open:(CDVInvokedUrlCommand *)command;
+-(void)query:(CDVInvokedUrlCommand *)command;
+-(void)close:(CDVInvokedUrlCommand *)command;
+
 @end

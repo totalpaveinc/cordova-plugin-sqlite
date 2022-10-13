@@ -28,6 +28,7 @@ import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.net.URI;
 import java.io.File;
+import java.lang.NumberFormatException;
 
 public class SQLite extends CordovaPlugin {
     public static final String LOG_TAG = "TP-SQLite";
@@ -40,7 +41,7 @@ public class SQLite extends CordovaPlugin {
     }
 
     @Override
-    public boolean execute(String action, JSONArray args, CallbackContext callback) throws JSONException {
+    public boolean execute(String action, JSONArray args, CallbackContext callback) throws JSONException, NumberFormatException {
         if (action.equals("open")) {
             String dbPath = args.getString(0);
             int openFlags = args.getInt(1);
@@ -49,7 +50,7 @@ public class SQLite extends CordovaPlugin {
             try {
                 dbHandle = $openDatabase(dbPath, openFlags);
                 JSONObject response = new JSONObject();
-                response.put("dbHandle", dbHandle);
+                response.put("dbHandle", Long.toString(dbHandle));
                 callback.success(response);
             }
             catch (SqliteException ex) {
@@ -60,7 +61,7 @@ public class SQLite extends CordovaPlugin {
         else if (action.equals("query")) {
             // The cordova API doesn't have a long version, but JSON objects does,
             // so to ensure int range safety when handling pointers, the dbHandle is wrapped in a JSON object.
-            long dbHandle = args.getJSONObject(0).getLong("dbHandle");
+            long dbHandle = Long.parseLong(args.getJSONObject(0).getString("dbHandle"));
             String sql = args.getString(1);
             JSONObject params = args.optJSONObject(2);
 
@@ -74,7 +75,7 @@ public class SQLite extends CordovaPlugin {
             return true;
         }
         else if (action.equals("close")) {
-            long dbHandle = args.getJSONObject(0).getLong("dbHandle");
+            long dbHandle = Long.parseLong(args.getJSONObject(0).getString("dbHandle"));
             Database db = $databases.get(dbHandle);
             if (db == null) {
                 callback.success();
