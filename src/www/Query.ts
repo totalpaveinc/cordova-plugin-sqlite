@@ -19,7 +19,10 @@ import { SQLiteParams } from './SQLiteTypes';
 import {IDatabaseHandle} from './IDatabaseHandle';
 import {IError} from './IError';
 
-export abstract class Query<TParams, TResponse> {
+/**
+ * @internal TSQLiteParams
+ */
+export abstract class Query<TParams, TResponse, TSQLiteParams = SQLiteParams> {
     private $params: TParams;
 
     public constructor(params: TParams) {
@@ -28,12 +31,19 @@ export abstract class Query<TParams, TResponse> {
 
     public abstract getQuery(): string;
 
-    protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+    protected async _getParameters(params: TParams): Promise<TSQLiteParams> {
         return;
     }
 
+    /**
+     * @internal function that controls which native API to call. Don't touch this.
+     */
+     protected _getNativeMethod(): string {
+        return 'query';
+    }
+
     public async execute(db: IDatabaseHandle): Promise<TResponse> {
-        let params = await this._getParameters(this.$params);
+        let params: TSQLiteParams = await this._getParameters(this.$params);
         return new Promise<TResponse>((resolve, reject) => {
             cordova.exec(
                 (data: any) => {
@@ -43,7 +53,7 @@ export abstract class Query<TParams, TResponse> {
                     reject(error);
                 },
                 SERVICE_NAME,
-                'query',
+                this._getNativeMethod(),
                 [
                     {dbHandle: db.getHandle()},
                     this.getQuery(),

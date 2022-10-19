@@ -131,6 +131,81 @@ public class Database {
         }
     }
 
+    public void bulkRun(String sql, JSONArray vars) throws JSONException, SqliteException {
+        // Prepare VALUES string
+        int rows = vars.length();
+        // It is invalid to have a variable number of columns, so assume the column count is the same across all rows is okay.
+        int columns = vars.getJSONArray(0).length();
+        
+        /*
+         (columns * 2) - last comma + ( and )
+         (?,?)
+         (2 * 2) - 1 + 2
+         4 + 1
+         5
+         */
+        int rowStringCapacity = (columns * 2) - 1 + 2;
+        /*
+         (rows * rowStringCapacity) + commas - last comma + "VALUES "
+         VALUES (?,?),(?,?)
+         (2 * 5) + 2 - 1 + 7
+         10 + 8
+         18
+         */
+        int valuesStringCapacity = (rows * rowStringCapacity) + rows - 1 + 7;
+
+        // Each row of values will look the exact same while they are unbounded. For that reason, let's prepare a string that we can re-use.
+        StringBuilder row = new StringBuilder(rowStringCapacity);
+        row.append('(');
+
+        for (int i = 0; i < columns; ++i) {
+            row.append('?');
+            if ((i + 1) < columns) {
+                row.append(',');
+            }
+        }
+        row.append(')');
+
+        // Use our prepared re-useable row string to actually prepare the VALUES string.
+        StringBuilder values = new StringBuilder(valuesStringCapacity);
+        values.append("VALUES ");
+        for (int i = 0; i < rows; ++i) {
+            values.append(row);
+            if ((i + 1) < rows) {
+                values.append(',');
+            }
+        }
+
+        // Replace :BulkInsertValue with VALUES string
+        sql = sql.replaceFirst(":BulkInsertValue", values.toString());
+
+        long statement;
+        try {
+            statement = Sqlite.prepare($handle, sql);
+        }
+        catch (SqliteException ex) {
+            JSONObject details = new JSONObject();
+            details.put(Error.QUERY_KEY, sql);
+            ex.setDetails(details);
+            throw ex;
+        }
+
+        // We create a new try-catch here because it's unsafe to call finalize on a failed statement.
+        try {
+            this.$bindBulkVars(statement, vars);
+            Sqlite.step(statement);
+            Sqlite.finalize(statement);
+            return;
+        }
+        catch (SqliteException ex) {
+            Sqlite.finalize(statement);
+            JSONObject details = new JSONObject();
+            details.put(Error.QUERY_KEY, sql);
+            ex.setDetails(details);
+            throw ex;
+        }
+    }
+
     private final void $bindVars(long statement, JSONObject vars) throws JSONException, SqliteException {
         if (vars != null) {
             Iterator<String> keys = vars.keys();
@@ -171,6 +246,53 @@ public class Database {
                 }
                 else {
                     throw new SqliteException(Error.DOMAIN, "Unhandled Parameter Type for key \"" + key + "\"", Error.UNHANDLED_PARAMETER_TYPE);
+                }
+            }
+        }
+    }
+
+    private final void $bindBulkVars(long statement, JSONArray vars) throws JSONException, SqliteException {
+        // index is 1-base: https://www.sqlite.org/c3ref/bind_blob.html
+        int index = 0;
+        for (int x = 0, xlength = vars.length(); x < xlength; ++x) {
+            JSONArray row = vars.getJSONArray(x);
+            for (int y = 0, ylength = row.length(); y < ylength; ++y) {
+                Object value = row.get(y);
+                index++;
+
+                if (value == JSONObject.NULL) {
+                    Sqlite.bindNullWithIndex(statement, index);
+                }
+                else if (value instanceof String) {
+                    Sqlite.bindStringWithIndex(statement, index, (String)value);
+                }
+                else if (value instanceof Integer) {
+                    Sqlite.bindIntWithIndex(statement, index, (Integer)value);
+                }
+                else if (value instanceof Double) {
+                    Sqlite.bindDoubleWithIndex(statement, index, (Double)value);
+                }
+                else if (value instanceof JSONObject) {
+                    // This is a complex object, such as an object representing  binary data.
+                    JSONObject v = (JSONObject)value;
+                    String objType = v.getString("type");
+                    if (objType.equals("bytearray")) {
+                        JSONArray jByteArray = v.getJSONArray("value");
+                        byte[] bytes = new byte[jByteArray.length()];
+                        for (int i = 0; i < jByteArray.length(); i++) {
+                            // The 0xFF mask is to trim off any value that is larger than 8 bits.
+                            // The expected array should be a int8 array.
+                            bytes[i] = (byte)(((int)jByteArray.get(i)) & 0xFF);
+                        }
+
+                        Sqlite.bindBlobWithIndex(statement, index, bytes);
+                    }
+                    else {
+                        throw new SqliteException(Error.DOMAIN, "Unhandled Complex Parameter Object for type \"" + objType + "\"", Error.UNHANDLED_PARAMETER_TYPE);
+                    }
+                }
+                else {
+                    throw new SqliteException(Error.DOMAIN, "Unhandled Parameter Type for value [" + x + "][" + y + "]", Error.UNHANDLED_PARAMETER_TYPE);
                 }
             }
         }

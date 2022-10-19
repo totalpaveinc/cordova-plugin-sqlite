@@ -17,7 +17,7 @@
 import {Query} from './Query';
 import {SQLiteParams} from './SQLiteTypes';
 
-export class RawQuery<TParams extends SQLiteParams | void = SQLiteParams, TResponse = any> extends Query<TParams, TResponse> {
+export class RawQuery<TParams extends SQLiteParams | void = SQLiteParams, TResponse = any> extends Query<TParams, TResponse, TParams> {
     private $sql: string;
 
     public constructor(sql: string, params?: TParams) {
@@ -25,8 +25,8 @@ export class RawQuery<TParams extends SQLiteParams | void = SQLiteParams, TRespo
         this.$sql = sql;
     }
 
-    protected async _getParameters(params: TParams): Promise<SQLiteParams> {
-        return <SQLiteParams>params;
+    protected async _getParameters(params: TParams): Promise<TParams> {
+        return params;
     }
 
     public override getQuery(): string {

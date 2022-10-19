@@ -15,14 +15,17 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
 - [3.0 - Database](#30---database)
   - [3.1 - getHandle](#31---gethandle)
   - [3.2 - isClosed](#32---isclosed)
-- [4.0 - SQLiteParams](#40---sqliteparams)
-  - [4.1 - SQLiteParamValueConverter](#41---sqliteparamvalueconverter)
+- [4.0 - SQLite Types and Converting](#40---sqlite-types-and-converting)
+  - [4.1 - SQLiteParams](#41---sqliteparams)
+  - [4.2 - SQLiteType](#42---sqlitetype)
+  - [4.3 - SQLiteParamValueConverter](#43---sqliteparamvalueconverter)
 - [5.0 - Query](#50---query)
   - [5.1 - Constructor](#51---constructor)
   - [5.2 - getQuery](#52---getquery)
   - [5.3 - _getParameters](#52---getquery)
   - [5.4 - execute](#54---execute)
   - [5.5 - Note on Data Types and Return Types](#55---note-on-data-types-and-return-types)
+  - [5.6 - _getNativeMethod](#56---_getnativemethod)
 - [6.0 - RawQuery](#60---rawquery)
   - [6.1 - constructor](#61---constructor)
 - [7.0 - StartTransactionQuery](#70---starttransactionquery)
@@ -31,6 +34,11 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [8.1 - constructor](#81---constructor)
 - [9.0 - RollbackTransactionQuery](#90---rollbacktransactionquery)
   - [9.1 - constructor](#91---constructor)
+- [10.0 - BulkInsertQuery](#100---bulkinsertquery)
+  - [10.1 - _getTable](#101---_gettable)
+  - [10.2 - _getColumns](#102---_getcolumns)
+  - [10.3 - _getOnConflict](#103---_getonconflict)
+
   
 
 ## 1.0 - General Notes
@@ -98,14 +106,26 @@ Returns true if the database is closed. When a database is closed, it is unsafe 
 isClosed(): boolean;
 ```
 
-## 4.0 - SQLiteParams
+## 4.0 - SQLite Types and Converting
 
-The `SQLiteParams` is the interface that is officially supported. 
+### 4.1 - SQLiteParams
+`SQLiteParams` is the query parameter interface that is officially supported. 
 
+Note while this is the offical support, that does not mean your Query parameters must adhere to this interface. Using [Query._getParameters](#53---_getparameters) and [SQLiteParamsValueConverter](#43---sqliteparamvalueconverter) your parameters can be converted from your own types to `SQLiteParams`.
+
+#### Signature
 ```typescript
 interface SQLiteParams {
-    [key: string]: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob | SQLiteNull;
+    [key: string]: SQLiteType;
 }
+```
+
+### 4.2 - SQLiteType
+`SQLiteType` is a union of types supported by SQLite.
+
+#### Signature
+```typescript
+type SQLiteType = SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob | SQLiteNull;
 ```
 
 The `SQLite*` types are aliases to the following types.
@@ -120,9 +140,9 @@ The `SQLite*` types are aliases to the following types.
 
 The `SQLiteDouble` and `SQLiteInteger` are aliases together as JavaScript only supports a single numerical type, `number`. The typing is for expression of intent by the developer, based on database schema.
 
-`IByteArray` is an internal data structure and may change without making a major release. Use [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) APIs to create `SQliteBlobs`.
+`IByteArray` is an internal data structure and may change without making a major release. Use [SQLiteParamValueConverter](#43---sqliteparamvalueconverter) APIs to create `SQliteBlobs`.
 
-### 4.1 - SQLiteParamValueConverter
+### 4.3 - SQLiteParamValueConverter
 
 The `SQLiteParamValueConverter` is a class with static APIs to convert javascript types into `SQLite*` types.
 
@@ -146,7 +166,9 @@ static async int8OrUint8ToSQLiteBlob(value: Uint8Array | Int8Array): Promise<SQL
 
 Query is an `abstract class` that represents an SQL statement. It is not usable on it's own and is intended to be subclassed. The design rationale behind this is it allows you to extract SQL strings out of the application and for it to be shared across the application, libraries, or even unit tests.
 
-The `Query` class has two generic types: `TParams` and `TResponse`.
+The `Query` class has three generic types: `TParams`, `TResponse`, `TSQLiteParams`.
+
+`TSQLiteParams` is internal code. Just ignore it.
 
 `TParams` should be an interface that describes the concrete query's parameters as a JSON object. `TParams` can be declared void if your query has no params.
 
@@ -155,6 +177,8 @@ The `Query` class has two generic types: `TParams` and `TResponse`.
 Named parameters can be provided in the SQL query which are populated by the `TParams` properties. Named parameters are binded using SQLite's binding APIs and therefore are safely escaped.
 
 Note that the `TResponse` generic type is provided to assert developer intent. It does not guarentee that the underlying returned data is actually the declared type. However, if there is a mismatch, it is likely either an error in the typing or in the actual SQL query statement.
+
+Note `Query` does not support multi-insert. See [BulkInsertQuery](#100---bulkinsertquery) instead.
 
 ### 5.1 - Constructor
 
@@ -199,7 +223,7 @@ The default behaviour `_getParameters` is to act as if there is no parameters.
 async _getParameters(params: TParams): Promise<SQLiteParams>;
 ```
 
-The primary intention for this hook is to convert the query's `TParams` to [SQLiteParams](#40---sqliteparams). Use [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) to accomplish this.
+The primary intention for this hook is to convert the query's `TParams` to [SQLiteParams](#41---sqliteparams). Use [SQLiteParamValueConverter](#43---sqliteparamvalueconverter) to accomplish this.
 
 ##### Examples
 
@@ -254,7 +278,7 @@ SQLite data types are quite primitive, and supports 4 different data types:
 
 Query parameters may accept additional types, which may not translate back to their original type on a select query. For example, a `boolean` type will be converted to an `integer` value of `0` or `1`, and is expected to be stored in an `integer` typed column. Selecting the column will simply return the data as an `integer`.
 
-The [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) API accepts several ways of providing blobs, including using `Blob`, `ArrayBuffer`, or `Uint8` and `Int8` array types. These types gets converted to a special format to signal the native side that the data represents a `Blob`. Selecting a blob however will yield a standard JS array of numbers. It's up to the client to take the array and reconstruct the blob as they see fit, for example:
+The [SQLiteParamValueConverter](#43---sqliteparamvalueconverter) API accepts several ways of providing blobs, including using `Blob`, `ArrayBuffer`, or `Uint8` and `Int8` array types. These types gets converted to a special format to signal the native side that the data represents a `Blob`. Selecting a blob however will yield a standard JS array of numbers. It's up to the client to take the array and reconstruct the blob as they see fit, for example:
 
 ```typescript
 let blob: Blob = new Blob([
@@ -264,9 +288,13 @@ let blob: Blob = new Blob([
 
 This isn't done automatically to avoid iterating over the resultset, when the application is likely to do it anyway.
 
+### 5.6 -  _getNativeMethod
+
+`_getNativeMethod` is internal code. Just ignore it.
+
 ## 6.0 - RawQuery
 
-A prebuilt [Query](#50---query) that accepts both the SQL string and the associated [SQLiteParams](#40---sqliteparams).
+A prebuilt [Query](#50---query) that accepts both the SQL string and the associated [SQLiteParams](#41---sqliteparams).
 
 It can be used to perform a SQL query without building out a class that extends the `Query` class. Useful for quickly debugging things or for unit tests.
 
@@ -336,4 +364,67 @@ The constructor accepts no arguments.
 
 ```typescript
 constructor();
+```
+
+## 10.0 - BulkInsertQuery
+
+An abstract query class that is designed for bulking inserting.
+
+An example of bulk-inserting:
+
+```sql
+INSERT INTO table
+COLUMNS (col1, col2)
+VALUES
+  (val1col1, val1col2),
+  (val2col1, val2col2)
+```
+
+`BulkInsertQuery` has 1 generic: `TParams extends TSQLiteParams`.
+`TSQLiteParams` is a type alias to `Array<Array<SQLiteType>>`;
+
+See [SQLiteType](#42---sqlitetype) for more information on `SQLiteType`.
+
+As indictated by the extension of `TSQLiteParams`, `BulkInsertQuery` does not recommend parameter conversion via `_getParameters`. 
+The parameters is already a 2-dimension array and is designed for big query usage. 
+
+Since `BulkInsertQuery` requires a 2-dimension array of `SQLiteType`, chances are you are already looping over a potentially massive dataset to construct this array. Using `_getParameters` would have you looping over that 2-dimension array twice.
+
+For that reason, we recommend using [SQLiteParamsValueConverter](#43---sqliteparamvalueconverter) when initially constructing the 2-dimension array of parameters. 
+
+While `BulkInsertQuery` is a `Query`, you should not override `getQuery`. `BulkInsertQuery` manages the overall structure of a bulk insert query and instead provides other abstract functions for you to override. See [_getTable](#101---_gettable), [_getColumns](#102---_getcolumns), [_getOnConflict](#103---_getonconflict) for more information.
+
+### 10.1 - _getTable
+`_getTable` defines the table you are inserting into to. This value is not sanitized.
+
+#### Signature
+```typescript
+protected abstract _getTable(): string;
+```
+
+### 10.2 - _getColumns
+`_getColumns` defines an array of strings, where each value is a column. These values are not sanitized.
+
+#### Signature
+```typescript
+protected abstract _getColumns(): Array<string>;
+```
+
+### 10.3 - _getOnConflict
+`_getOnConflict` allows you to specify the `ON CONFLICT` clause for things like upsert support.
+
+You are required to define the entire clause, for example:
+
+```typescript
+protected _getOnConflict(): string {
+  return `
+    ON CONFLICT (id) DO UPDATE SET
+      col1 = excluded.col1
+  `;
+}
+```
+
+#### Signature
+```typescript
+protected _getOnConflict(): string;
 ```

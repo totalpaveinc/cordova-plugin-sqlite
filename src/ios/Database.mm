@@ -162,8 +162,117 @@
     return [[NSArray alloc] initWithArray:results];
 }
 
+- (void) bulkRun:(NSString*_Nonnull) sql params:(NSArray*_Nullable) params error:(NSError*_Nullable*_Nonnull) error {
+    sqlite3_stmt* statement;
+
+    // Prepare VALUES string
+    NSInteger rows = [params count];
+    // It is invalid to have a variable number of columns, so assume the column count is the same across all rows is okay.
+    NSInteger columns = [params[0] count];
+    
+
+    /*
+        (columns * 2) - last comma + ( and )
+        (?,?)
+        (2 * 2) - 1 + 2
+        4 + 1
+        5
+    */
+    NSUInteger rowStringCapacity = (columns * 2) - 1 + 2;
+    /*
+        (rows * rowStringCapacity) + commas - last comma + "VALUES "
+        VALUES (?,?),(?,?)
+        (2 * 5) + 2 - 1 + 7
+        10 + 8
+        18
+    */
+    NSUInteger valuesStringCapacity = (rows * rowStringCapacity) + rows - 1 + 7;
+
+    // Each row of values will look the exact same while they are unbounded. For that reason, let's prepare a string that we can re-use.
+    NSMutableString* row = [NSMutableString stringWithCapacity:rowStringCapacity];
+    [row appendString:@"("];
+    for (NSInteger i = 0; i < columns; ++i) {
+        [row appendString:@"?"];
+        if ((i + 1) < columns) {
+            [row appendString:@","];
+        }
+    }
+    [row appendString:@")"];
+    
+    // Use our prepared re-useable row string to actually prepare the VALUES string.
+    NSMutableString* values = [NSMutableString stringWithCapacity:rowStringCapacity];
+    [values appendString:@"VALUES "];
+    for (NSInteger i = 0; i < rows; ++i) {
+        [values appendString:row];
+        if ((i + 1) < rows) {
+            [values appendString:@","];
+        }
+    }
+    
+    // Replace :BulkInsertValue with VALUES string
+    NSRange range = [sql rangeOfString: @":BulkInsertValue"];
+    sql = [sql stringByReplacingCharactersInRange:range withString:values];
+    
+    const char * cxxSql = [sql UTF8String];
+    int status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
+    if (status != SQLITE_OK) {
+        *error = [[NSError alloc]
+            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            code:status
+            userInfo:@{
+                NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
+                ERROR_QUERY_KEY: sql
+            }
+        ];
+        sqlite3_finalize(statement);
+        return;
+    }
+    
+    [self $bindBulkParams:statement params:params error: error];
+    if (*error != nil) {
+        sqlite3_finalize(statement);
+        return;
+    }
+    
+    int columnCount = sqlite3_column_count(statement);
+    
+    status = sqlite3_step(statement);
+    if (status != SQLITE_DONE) {
+        *error = [[NSError alloc]
+            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            code:status
+            userInfo:@{
+                NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
+                ERROR_QUERY_KEY: sql
+            }
+        ];
+    }
+    sqlite3_finalize(statement);
+}
+
 - (void) close {
     sqlite3_close_v2(self->$db);
+}
+
+- (void) $bindBulkParams:(sqlite3_stmt*_Nonnull) statement params:(NSArray*_Nonnull) params error:(NSError*_Nullable*_Nonnull) error {
+    // index is 1-base: https://www.sqlite.org/c3ref/bind_blob.html
+    int index = 0;
+    for (NSInteger x = 0, xlength = [params count]; x < xlength; ++x) {
+        NSArray* row = params[x];
+        for (NSInteger y = 0, ylength = [row count]; y < ylength; ++y) {
+            index++;
+            
+            [self $bindParam:statement
+                index:index
+                value:row[y]
+        parameterKeyForError:[NSString stringWithFormat:@"%@@%ld%@%ld%@", @"params[", (long)x, @"][", (long)y, @"]"]
+                error:error
+            ];
+            if (*error != nil) {
+                return;
+            }
+        }
+    }
 }
 
 - (void) $bindParams:(sqlite3_stmt*_Nonnull) statement params:(NSDictionary*_Nullable) params error:(NSError*_Nullable*_Nonnull) error {
@@ -187,78 +296,85 @@
                 return;
             }
 
-            int status;
-
-            if ([value isEqual:[NSNull null]]) {
-                status = sqlite3_bind_null(statement, index);
-            }
-            else if ([value isKindOfClass:[NSString class]]) {
-                const char * val = [value UTF8String];
-                status = sqlite3_bind_text(statement, index, val, (int)strlen(val), SQLITE_TRANSIENT);
-            }
-            else if ([value isKindOfClass:[NSNumber class]]) {
-                if (fmod([value doubleValue], 1) == 0.0) {
-                    status = sqlite3_bind_int(statement, index, [value intValue]);
-                }
-                else {
-                    status = sqlite3_bind_double(statement, index, [value doubleValue]);
-                }
-            }
-            else if ([value isKindOfClass:[NSDictionary class]]) {
-                NSDictionary* val = value;
-                NSString* objType = [val objectForKey:@"type"];
-                if ([objType isEqual: @"bytearray"]) {
-                    NSArray* jByteArray = [val objectForKey:@"value"];
-                    std::vector<uint8_t> bytes(jByteArray.count - 1);
-                    for (int i = 0, length = (int)jByteArray.count; i < length; ++i) {
-                        bytes[i] = [[jByteArray objectAtIndex:i] intValue] & 0xFF;
-                    }
-                    status = sqlite3_bind_blob(statement, index, &bytes, (int)jByteArray.count - 1, SQLITE_TRANSIENT);
-                }
-                else {
-                    *error = [[NSError alloc]
-                        initWithDomain:ERROR_DOMAIN
-                        code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
-                        userInfo:@{
-                            NSLocalizedDescriptionKey: [NSString
-                                stringWithUTF8String:(
-                                    "Unhandled Complex Parameter Object for type \"" + std::string([objType UTF8String]) + "\""
-                                ).c_str()
-                            ],
-                            ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
-                        }
-                    ];
-                    return;
-                }
-            }
-            else {
-                *error = [[NSError alloc]
-                    initWithDomain:ERROR_DOMAIN
-                    code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
-                    userInfo:@{
-                        NSLocalizedDescriptionKey: [NSString
-                            stringWithUTF8String:(
-                                "Unhandled Parameter Type for key \"" + std::string([key UTF8String]) + "\""
-                            ).c_str()
-                        ],
-                        ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
-                    }
-                ];
-                return;
-            }
-
-            if (status != SQLITE_OK) {
-                *error = [[NSError alloc]
-                    initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
-                    code: status
-                    userInfo:@{
-                        NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                        ERROR_QUERY_KEY: [NSString stringWithUTF8String:sqlite3_sql(statement)]
-                    }
-                ];
+            [self $bindParam:statement index:index value:value parameterKeyForError:key error:error];
+            if (*error != nil) {
                 return;
             }
         }
+    }
+}
+
+- (void) $bindParam:(sqlite3_stmt*_Nonnull) statement index:(int) index value:(id _Nullable) value parameterKeyForError:(NSString*_Nonnull) parameterKeyForError error:(NSError*_Nullable*_Nonnull) error {
+    int status;
+
+    if ([value isEqual:[NSNull null]]) {
+        status = sqlite3_bind_null(statement, index);
+    }
+    else if ([value isKindOfClass:[NSString class]]) {
+        const char * val = [value UTF8String];
+        status = sqlite3_bind_text(statement, index, val, (int)strlen(val), SQLITE_TRANSIENT);
+    }
+    else if ([value isKindOfClass:[NSNumber class]]) {
+        if (fmod([value doubleValue], 1) == 0.0) {
+            status = sqlite3_bind_int(statement, index, [value intValue]);
+        }
+        else {
+            status = sqlite3_bind_double(statement, index, [value doubleValue]);
+        }
+    }
+    else if ([value isKindOfClass:[NSDictionary class]]) {
+        NSDictionary* val = value;
+        NSString* objType = [val objectForKey:@"type"];
+        if ([objType isEqual: @"bytearray"]) {
+            NSArray* jByteArray = [val objectForKey:@"value"];
+            std::vector<uint8_t> bytes(jByteArray.count);
+            for (int i = 0, length = (int)jByteArray.count; i < length; ++i) {
+                bytes[i] = [((NSNumber*)[jByteArray objectAtIndex:i]) intValue] & 0xFF;
+            }
+            status = sqlite3_bind_blob(statement, index, &bytes, (int)jByteArray.count - 1, SQLITE_TRANSIENT);
+        }
+        else {
+            *error = [[NSError alloc]
+                initWithDomain:ERROR_DOMAIN
+                code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
+                userInfo:@{
+                    NSLocalizedDescriptionKey: [NSString
+                        stringWithUTF8String:(
+                            "Unhandled Complex Parameter Object for type \"" + std::string([objType UTF8String]) + "\""
+                        ).c_str()
+                    ],
+                    ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                }
+            ];
+            return;
+        }
+    }
+    else {
+        *error = [[NSError alloc]
+            initWithDomain:ERROR_DOMAIN
+            code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
+            userInfo:@{
+                NSLocalizedDescriptionKey: [NSString
+                    stringWithUTF8String:(
+                        "Unhandled Parameter Type for key \"" + std::string([parameterKeyForError UTF8String]) + "\""
+                    ).c_str()
+                ],
+                ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+            }
+        ];
+        return;
+    }
+
+    if (status != SQLITE_OK) {
+        *error = [[NSError alloc]
+            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            code: status
+            userInfo:@{
+                NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
+                ERROR_QUERY_KEY: [NSString stringWithUTF8String:sqlite3_sql(statement)]
+            }
+        ];
+        return;
     }
 }
 

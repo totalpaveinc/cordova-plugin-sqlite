@@ -97,4 +97,41 @@
     ];
 }
 
+-(void)bulkInsert:(CDVInvokedUrlCommand *)command
+{
+    NSString* sql = [command.arguments objectAtIndex:1];
+    NSArray* params = [command.arguments objectAtIndex:2];
+    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
+    
+    if ([db isEqual:[NSNull null]]) {
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Database Not Found. Did you open your database before calling bulkInsert?"
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+    else {
+        NSError* error;
+        [db bulkRun:sql params:params error:&error];
+        if (error) {
+            [self.commandDelegate
+                sendPluginResult:[CDVPluginResult
+                    resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+                ]
+                callbackId:command.callbackId
+            ];
+            return;
+        }
+    }
+    
+    [self.commandDelegate
+        sendPluginResult:[CDVPluginResult
+            resultWithStatus:CDVCommandStatus_OK
+        ]
+        callbackId:command.callbackId
+    ];
+}
+
 @end
