@@ -74,6 +74,28 @@ public class SQLite extends CordovaPlugin {
             }
             return true;
         }
+        else if (action.equals("bulkInsert")) {
+            // The cordova API doesn't have a long version, but JSON objects does,
+            // so to ensure int range safety when handling pointers, the dbHandle is wrapped in a JSON object.
+            long dbHandle = Long.parseLong(args.getJSONObject(0).getString("dbHandle"));
+            String sql = args.getString(1);
+            JSONArray params = args.optJSONArray(2);
+
+            try {
+                Database db = $databases.get(dbHandle);
+
+                if (db == null) {
+                    throw new SqliteException(Error.DOMAIN, "Database Not Found. Did you open your database before calling bulkInsert?", Error.DATABASE_NOT_FOUND);
+                }
+
+                db.bulkRun(sql, params);
+                callback.success();
+            }
+            catch (SqliteException ex) {
+                callback.error(ex.toDictionary());
+            }
+            return true;
+        }
         else if (action.equals("close")) {
             long dbHandle = Long.parseLong(args.getJSONObject(0).getString("dbHandle"));
             Database db = $databases.get(dbHandle);

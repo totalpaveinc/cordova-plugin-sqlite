@@ -21,6 +21,7 @@ import {
     SQLite,
     Database,
     RawQuery,
+    BulkInsertQuery,
     Query,
     StartTransactionQuery,
     CommitTransactionQuery,
@@ -28,6 +29,7 @@ import {
     SQLiteInteger,
     SQLiteText,
     SQLiteDouble,
+    SQLiteBlob,
     SQLiteNull,
     SQLiteParams
 } from '@totalpave/cordova-plugin-sqlite';
@@ -61,6 +63,38 @@ class InsertPersonQuery extends Query<IInsertPersonQueryParams, void> {
     }
 }
 
+
+type TBulkInsertPersonQueryParams = Array<[
+    id: SQLiteInteger,
+    name: SQLiteText,
+    height: SQLiteDouble,
+    data: SQLiteBlob | SQLiteNull
+]>;
+
+class BulkInsertPersonQuery extends BulkInsertQuery<TBulkInsertPersonQueryParams> {
+    protected _getTable(): string {
+        return "test";
+    }
+
+    protected _getColumns(): Array<string> {
+        return [
+            "id",
+            "name",
+            "height",
+            "data"
+        ];
+    }
+
+    protected _getOnConflict(): string {
+        return `
+            ON CONFLICT (id) DO UPDATE SET
+                name = excluded.name,
+                height = excluded.height,
+                data = excluded.data
+        `;
+    }
+}
+
 document.addEventListener('deviceready', onDeviceReady, false);
 
 let db: Database;
@@ -69,7 +103,7 @@ async function prepareTestDB() {
     db = await SQLite.open(cordova.file.dataDirectory + 'test.db', true);
     await new RawQuery(`
         CREATE TABLE IF NOT EXISTS test (
-            id INTEGER NOT NULL,
+            id INTEGER NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
             height REAL,
             data BLOB
@@ -86,7 +120,7 @@ async function runTest(number: number, description: string, testFn: Function) {
         console.log(`Test ${number} passes`);
     }
     catch (ex) {
-        console.error(`Test ${number} failed | ${ex}`);
+        console.error(`Test ${number} failed |`, ex);
     }
 }
 
@@ -147,6 +181,62 @@ function onDeviceReady() {
             let data = (await new RawQuery('SELECT name FROM test where id = 5').execute(db))[0];
             if (data.name != "bob") {
                 throw new Error(`Update didn't update. ${JSON.stringify(data)}`);
+            }
+        });
+        await runTest(6, 'bulk insert works', async () => {
+            await new BulkInsertPersonQuery(
+                [
+                    [ 6, "Bob", 1, null ],
+                    [ 7, "Bob", 1, null ]
+                ]
+            ).execute(db);
+            let data = (await new RawQuery('SELECT * FROM test where id = 6 OR id = 7').execute(db));
+            if (
+                data[0].id !== 6 ||
+                data[0].name !== 'Bob' ||
+                data[0].height !== 1 ||
+                data[0].data !== null
+            ) {
+                throw new Error(`Data did not match expectations | ${JSON.stringify(data)} | ${JSON.stringify({id: 6, name: 'Bob', height: 1, data: null})}`);
+            }
+            if (
+                data[1].id !== 7 ||
+                data[1].name !== 'Bob' ||
+                data[1].height !== 1 ||
+                data[1].data !== null
+            ) {
+                throw new Error(`Data did not match expectations | ${JSON.stringify(data)} | ${JSON.stringify({id: 7, name: 'Bob', height: 1, data: null})}`);
+            }
+        });
+        await runTest(7, 'bulk upsert works', async () => {
+            await new BulkInsertPersonQuery(
+                [
+                    [ 8, "Bob", 1, null ],
+                    [ 9, "Bob", 1, null ]
+                ]
+            ).execute(db);
+            await new BulkInsertPersonQuery(
+                [
+                    [ 8, "Bob", 2, null ],
+                    [ 9, "Bob", 2, null ]
+                ]
+            ).execute(db);
+            let data = (await new RawQuery('SELECT * FROM test where id = 8 OR id = 9').execute(db));
+            if (
+                data[0].id !== 8 ||
+                data[0].name !== 'Bob' ||
+                data[0].height !== 2 ||
+                data[0].data !== null
+            ) {
+                throw new Error(`Data did not match expectations | ${JSON.stringify(data)} | ${JSON.stringify({id: 8, name: 'Bob', height: 2, data: null})}`);
+            }
+            if (
+                data[1].id !== 9 ||
+                data[1].name !== 'Bob' ||
+                data[1].height !== 2 ||
+                data[1].data !== null
+            ) {
+                throw new Error(`Data did not match expectations | ${JSON.stringify(data)} | ${JSON.stringify({id: 9, name: 'Bob', height: 2, data: null})}`);
             }
         });
 
