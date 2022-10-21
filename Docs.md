@@ -5,8 +5,9 @@ This document describes the public API available to library consumers.
 
 This plugin does not aim to be a direct API to SQLite, instead it mimicks the Breautek's [Storm](https://github.com/breautek/storm) database API.
 # Table of Contents
-- [1.0 - Plugin Namespace](#10---plugin-namespace)
-- [1.1 - Undefined Behaviour](#11---undefined-behaviour)
+- [1.0 - General Notes](#10---general-notes)
+- [1.1 - Plugin Namespace](#11---plugin-namespace)
+- [1.2 - Undefined Behaviour](#12---undefined-behaviour)
 - [2.0 - SQLite](#20---sqlite)
   - [2.1 - Thread Safety](#21---thread-safety)
   - [2.2 - open](#22---open)
@@ -14,31 +15,30 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
 - [3.0 - Database](#30---database)
   - [3.1 - getHandle](#31---gethandle)
   - [3.2 - isClosed](#32---isclosed)
-- [4.0 - Query](#40---query)
-  - [4.1 - TParamsObject](#41-tparamsobject)
-  - [4.2 - Constructor](#42-constructor)
-  - [4.3 - getQuery](#43-getquery)
-  - [4.4 - execute](#44-execute)
-  - [4.5 - Query Results](#45-note-on-data-types-and-return-types)
-- [5.0 - ParamBuilder](#50-parambuilder)
-  - [5.1 - constructor](#51-constructor)
-  - [5.2 - setNumber](#52---set)
-  - [5.3 - build](#53---build)
-- [6.0 - RawQuery](#60-rawquery)
-  - [6.1 - constructor](#61-constructor)
-- [7.0 - StartTransactionQuery](#70-starttransactionquery)
-  - [7.1 - constructor](#71-constructor)
-- [8.0 - CommitTransactionQuery](#80-committransactionquery)
-  - [8.1 - constructor](#81-constructor)
-- [9.0 - RollbackTransactionQuery](#90-rollbacktransactionquery)
-  - [9.1 - constructor](#91-constructor)
+- [4.0 - SQLiteParams](#40---sqliteparams)
+  - [4.1 - SQLiteParamValueConverter](#41---sqliteparamvalueconverter)
+- [5.0 - Query](#50---query)
+  - [5.1 - Constructor](#51---constructor)
+  - [5.2 - getQuery](#52---getquery)
+  - [5.3 - _getParameters](#52---getquery)
+  - [5.4 - execute](#54---execute)
+  - [5.5 - Note on Data Types and Return Types](#55---note-on-data-types-and-return-types)
+- [6.0 - RawQuery](#60---rawquery)
+  - [6.1 - constructor](#61---constructor)
+- [7.0 - StartTransactionQuery](#70---starttransactionquery)
+  - [7.1 - constructor](#71---constructor)
+- [8.0 - CommitTransactionQuery](#80---committransactionquery)
+  - [8.1 - constructor](#81---constructor)
+- [9.0 - RollbackTransactionQuery](#90---rollbacktransactionquery)
+  - [9.1 - constructor](#91---constructor)
   
 
-## 1.0 - Plugin Namespace
+## 1.0 - General Notes
+### 1.1 - Plugin Namespace
 
 This plugin is namespaced under `window.totalpave.sqlite` and for brevity this will be omitted throughout the remainder of this document. For example, the `SQLite` package is located at `window.totalpave.sqlite.SQLite` but will be only referenced as `SQLite`.
 
-## 1.1 - Undefined Behaviour
+## 1.2 - Undefined Behaviour
 
 A note on undefined behaviour for those who are unfamiliar with the term. [Undefined behaviour](https://en.cppreference.com/w/cpp/language/ub) is a term often used in C++ that signals a procedure that is illogical, or may produce machine code that may work or may not work, and the actual result of the code is not determined by looking at the source code. That is, the program may work, it may produce a no-operation, it may corrupt data, it may fatally crash. The behaviour is undefined and anything _could_ happen, therefore anything that is known to create undefined behaviour should be avoided.
 
@@ -56,7 +56,7 @@ Generally speaking, SQLite is used on local clients and it's presumed that the a
 
 Opens a new connection the database at __path__. By default, the connection will be readonly and will error if the database does not already exists. If __writeAccess__ is `true`, then the database will be opened with write mode enabled, and if the database file does not exists, it will be created.
 
-The returned value is a [Database](#Database). It represents the underlying database handle. Keep a reference to this value for preparing SQL statements and for closing the database later.
+The returned value is a [Database](#30---database). It represents the underlying database handle. Keep a reference to this value for preparing SQL statements and for closing the database later.
 
 ##### Signature
 
@@ -98,37 +98,15 @@ Returns true if the database is closed. When a database is closed, it is unsafe 
 isClosed(): boolean;
 ```
 
-## 4.0 - Query
+## 4.0 - SQLiteParams
 
-Query is an `abstract class` that represents an SQL statement. It is not usable on it's own and is intended to be subclassed. The design rationale behind this is it allows you to extract SQL strings out of the application and for it to be shared across the application, libraries, or even unit tests.
-
-The `Query` class has two generic types: `TParams` and `TResponse`.
-
-`TParams` should be an interface that describes a JSON params object. It must adhere to the [TParamsObject](#41-tparamsobject) type.
-
-Classes that extends `Query` must implement the following methods:
-
-- [getQuery](#43-getquery)
-
-Named parameters can be provided in the SQL query which are populated by the `TParamsObject` properties. Named parameters are binded using SQLite's binding APIs and therefore are safely escaped.
-
-Note that the `TResponse` generic type is provided to assert developer intent. It does not guarentee that the underlying returned data is actually the declared type. However, if there is a mismatch, it is likely either an error in the typing or in the actual SQL query statement.
-
-### 4.1 TParamsObject
-
-The `TParamsObject` is an object that can hold the following structure:
+The `SQLiteParams` is the interface that is officially supported. 
 
 ```typescript
-interface TParamsObject {
-    [key: string]: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob;
+interface SQLiteParams {
+    [key: string]: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob | SQLiteNull;
 }
 ```
-
-The JSON object can have any number of properties consisting of the following types:
-- `SQLiteText`
-- `SQLiteDouble`
-- `SQLiteInteger`
-- `SQLiteBlob`
 
 The `SQLite*` types are aliases to the following types.
 
@@ -138,16 +116,49 @@ The `SQLite*` types are aliases to the following types.
 |`SQLiteDouble`|`number`|
 |`SQLiteInteger`|`number`|
 |`SQLiteBlob`|`IByteArray`|
+|`SQLiteNull`|`null`|
 
 The `SQLiteDouble` and `SQLiteInteger` are aliases together as JavaScript only supports a single numerical type, `number`. The typing is for expression of intent by the developer, based on database schema.
 
-`IByteArray` is a special structure not intended to be crafted manually. Use [ParamBuilder](#50-parambuilder) to build a `TParamsObject` that contains byte arrays or other binary blob data. Do not craft an `IByteArray` buffer manually as it is an implementation detail, and may change without making a major release.
+`IByteArray` is an internal data structure and may change without making a major release. Use [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) APIs to create `SQliteBlobs`.
 
-### 4.2 Constructor
+### 4.1 - SQLiteParamValueConverter
 
-Constructs a new instance of `Query` with the given [TParamsObject](#41-tparamsobject).
+The `SQLiteParamValueConverter` is a class with static APIs to convert javascript types into `SQLite*` types.
 
-Subclasses may declare that `TParamsObject` is `void`, that is it accepts no parameters.
+`SQLiteParamValueConverter` is the only correct way to create an `IByteArray`.
+
+##### Signature
+
+```typescript
+static numberToInteger(value: number): SQLiteInteger;
+static numberToDouble(value: number): SQLiteDouble;
+static booleanToInteger(value: boolean): SQLiteInteger;
+static nullOrUndefinedToSQLiteNull(value: number): SQLiteNull;
+static dateToText(value: Date): SQLiteText;
+static stringToText(value: string): SQLiteText;
+static async blobToSQLiteBlob(value: Blob): Promise<SQLiteBlob>;
+static async arrayBufferToSQLiteBlob(value: ArrayBuffer): Promise<SQLiteBlob>;
+static async int8OrUint8ToSQLiteBlob(value: Uint8Array | Int8Array): Promise<SQLiteBlob>;
+```
+
+## 5.0 - Query
+
+Query is an `abstract class` that represents an SQL statement. It is not usable on it's own and is intended to be subclassed. The design rationale behind this is it allows you to extract SQL strings out of the application and for it to be shared across the application, libraries, or even unit tests.
+
+The `Query` class has two generic types: `TParams` and `TResponse`.
+
+`TParams` should be an interface that describes the concrete query's parameters as a JSON object. `TParams` can be declared void if your query has no params.
+
+`TParams` should __not__ extend `SQLiteParams`. `SQLiteParams` accepts any key and does not require keys to be defined. `TParams` is supposed to define specific keys that your query actually uses.
+
+Named parameters can be provided in the SQL query which are populated by the `TParams` properties. Named parameters are binded using SQLite's binding APIs and therefore are safely escaped.
+
+Note that the `TResponse` generic type is provided to assert developer intent. It does not guarentee that the underlying returned data is actually the declared type. However, if there is a mismatch, it is likely either an error in the typing or in the actual SQL query statement.
+
+### 5.1 - Constructor
+
+Constructs a new instance of `Query` with the given `TParams`.
 
 ##### Signature
 
@@ -155,10 +166,11 @@ Subclasses may declare that `TParamsObject` is `void`, that is it accepts no par
 constructor(params: TParams);
 ```
 
-
-### 4.3 getQuery
+### 5.2 - getQuery
 
 Returns the SQL query as a string. It may have named variables, denoted by a keyword prefixed with the colon (`:`) character.
+
+getQuery is abstract and must be implemented by extending classes.
 
 Example:
 
@@ -173,7 +185,50 @@ VALUES (:firstName, :lastName)
 abstract getQuery(): string;
 ```
 
-### 4.4 execute
+### 5.3 - _getParameters
+
+A hook to do work on parameters just before they are sent to native.
+
+__The return value of \_getParameters is the actual data sent to native. All queries that use parameters must override and implement this hook.__
+
+The default behaviour `_getParameters` is to act as if there is no parameters. 
+
+##### Signature
+
+```typescript
+async _getParameters(params: TParams): Promise<SQLiteParams>;
+```
+
+The primary intention for this hook is to convert the query's `TParams` to [SQLiteParams](#40---sqliteparams). Use [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) to accomplish this.
+
+##### Examples
+
+```typescript
+// If `TParams` adheres to `SQLiteParams` you can do this
+protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+  return <SQLiteParams><unknown>params;
+}
+
+// You can also spread params instead of type asserting however; remember spreading is done during runtime. Typescript type asserting is done during compile time.
+protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+  return {...params};
+}
+
+// If `TParams` does not adhere to `SQLite` then use SQLiteParamValueConverter.
+interface IMyQueryParams {
+  data: Blob;
+}
+
+class MyQuery extends Query<IMyQueryParams, void> {
+  protected async _getParameters(params: IMyQueryParams): Promise<SQLiteParams> {
+    return {
+      data: SQLiteParamValueConverter.blobToSQLiteBlob(params.data)
+    };
+  }
+}
+```
+
+### 5.4 - execute
 
 Executes the `Query` onto the given [Database](#30---database). The database must not be closed or undefined behaviour will occur. Query parameters are passed through.
 
@@ -183,9 +238,15 @@ The return type is the generic type `TResponse`. The return type is not known at
 
 For `SELECT` queries, the return type is generally an array of json objects, whose properties are keyed by the select query columns.
 
-### 4.5 Note on Data Types and Return Types
+##### Signature
 
-SQLite data types are quite primitive, and supports generally 4 different data types:
+```typescript
+async execute(db: Database): Promise<TResponse>;
+```
+
+### 5.5 - Note on Data Types and Return Types
+
+SQLite data types are quite primitive, and supports 4 different data types:
  - integers (int, size are dynamic depending on the magnitude of the value, could be 0, 1, 2, 3, 4, 5, or 8 bytes)
  - real (8-byte IEEE floating point number, e.g. `double` type)
  - Text (Strings in UTF-8)
@@ -193,7 +254,7 @@ SQLite data types are quite primitive, and supports generally 4 different data t
 
 Query parameters may accept additional types, which may not translate back to their original type on a select query. For example, a `boolean` type will be converted to an `integer` value of `0` or `1`, and is expected to be stored in an `integer` typed column. Selecting the column will simply return the data as an `integer`.
 
-The [ParamBuilder](#50-parambuilder) API accepts several ways of providing blobs, including using `Blob`, `ArrayBuffer`, or `Uint8Array` types. These types gets converted to a special format to signal the native side that the data represents a `Blob`. Selecting a blob however will yield a standard JS array of numbers. It's up to the client to take the array and reconstruct the blob as they see fit, for example:
+The [SQLiteParamValueConverter](#41---sqliteparamvalueconverter) API accepts several ways of providing blobs, including using `Blob`, `ArrayBuffer`, or `Uint8` and `Int8` array types. These types gets converted to a special format to signal the native side that the data represents a `Blob`. Selecting a blob however will yield a standard JS array of numbers. It's up to the client to take the array and reconstruct the blob as they see fit, for example:
 
 ```typescript
 let blob: Blob = new Blob([
@@ -203,97 +264,19 @@ let blob: Blob = new Blob([
 
 This isn't done automatically to avoid iterating over the resultset, when the application is likely to do it anyway.
 
-##### Signature
+## 6.0 - RawQuery
 
-```typescript
-async execute(db: Database): Promise<TResponse>;
-```
+A prebuilt [Query](#50---query) that accepts both the SQL string and the associated [SQLiteParams](#40---sqliteparams).
 
-
-## 5.0 ParamBuilder
-
-ParamBuilder is a class for constructing more complex parameters for a [Query](#40---query).
-
-Generally speaking, it will be easier/faster to construct a standard JSON object if your parameters consists of only `number`, and `string` types. However, if you require to bind `boolean` or `Blob`, then `ParamBuilder` may be beneficial to use.
-
-Note that `ParamBuilder` requires to be ran in an async context, as `Blob` APIs are asynchronous.
-
-Each setter method returns an instance of hte `ParamBuilder` allowing you to chain calls.
-
-For example:
-
-```typescript
-interface IQueryParams {
-  id: SQLiteInteger;
-  name: SQLiteText;
-  height: SQLiteDouble;
-  data: SQLiteBlob;
-}
-let builder: ParamBuilder<QueryParamsType> = new ParamBuilder();
-let params: TParamsObject = await builder
-  .set('id', 1)
-  .set('height', 5.7)
-  .set('name', 'John Smith')
-  .set('data', new Uint8Array([0x11])) // Also accepts other typed arrays, ArrayBuffer, or Blob
-  .build();
-```
-
-### 5.1 Constructor
-
-A simple constructor that accepts no parameters.
-
-##### Signature
-
-```typescript
-constructor();
-```
-
-### 5.2 - set
-
-Sets a number value at the given `key`. `value` can accept multiple types:
-  - `SQLiteText` (`string`)
-  - `SQLiteInteger` (`number`)
-  - `SQLiteDouble` (`number`)
-  - `SQLiteBlob` (`Blob`, `ArrayBuffer`, or one of the Typed Array types.)
-
-`SQLiteInteger` and `SQLiteDouble` are synonymous. They both refer to the JavaScript `number` type, but can be used by query authors to explicitly state intent of parameter typings.
-
-`SQLiteBlob` or any of the other binary types will produce an internal `IByteArray` representation. This is an implementation detail and `IByteArray` should not be constructed manually.
-
-##### Signature
-
-```typescript
-type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array;
-set(key: string, value: SQLiteText | SQLiteInteger | SQLiteDouble | SQLiteBlob | Blob | ArrayBuffer | TypedArray): ParamBuilder
-```
-
-### 5.3 - build
-
-Builds a [TParamsObject](#41-tparamsobject) to be used by a [Query](#40---query).
-
-Due to some data types that requires the use of asynchronous APIs, this method is also asynchronous.
-
-This method can be called several times. A new object is created and returned for each `build` call.
-
-##### Signature
-
-```typescript
-async build(): Promise<TParamsObject>;
-```
-
-## 6.0 RawQuery
-
-A prebuilt [Query](#40---query) that accepts both the SQL string and the associated [TParamsObject](#41-tparamsobject).
-
-It can be used to perform an SQL query without building out a class that extends the `Query` class. Useful for quickly debugging things or for unit tests.
+It can be used to perform a SQL query without building out a class that extends the `Query` class. Useful for quickly debugging things or for unit tests.
 
 It's not recommended to use this class in production and instead to extend and use your own `Query` implementations, where you can declare typings as well as build unit tests around.
 
 The `RawQuery` exposes the `Query` generics, but by default it is permissive and can be used without declaring types.
 
-### 6.1 constructor
+### 6.1 - constructor
 
-The consructor consists of the standard `TParamsObject` as well as the SQL statement.
+The consructor consists of the standard `SQLiteParams` as well as the SQL statement.
 
 The params object may be omitted if the SQL statement contains no named parameters.
 
@@ -303,7 +286,7 @@ The params object may be omitted if the SQL statement contains no named paramete
 constructor(sql: string, params?: TParams);
 ```
 
-## 7.0 StartTransactionQuery
+## 7.0 - StartTransactionQuery
 
 Prebuilt query to start a transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
 
@@ -313,8 +296,7 @@ Like the SQLite default, `DEFERRED` is chosen by default if not provided.
 
 This query can be executed multiple times, but SQLite does not have a concept of nested transactions. Therefore, do not start a transaction if there is already an active transaction.
 
-
-### 7.1 constructor
+### 7.1 - constructor
 
 The constructor optionally accepts 1 parameter, `TransactionMode`. it defaults to `TransactionMode.DEFERRED`.
 
@@ -324,13 +306,13 @@ The constructor optionally accepts 1 parameter, `TransactionMode`. it defaults t
 constructor(mode: TransactionMode = TransactionMode.DEFERRED);
 ```
 
-## 8.0 CommitTransactionQuery
+## 8.0 - CommitTransactionQuery
 
 A prebuilt query to commit an active transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
 
 It is an error to commit a transaction on a database without an active transaction.
 
-### 8.1 constructor
+### 8.1 - constructor
 
 The constructor accepts no arguments.
 
@@ -340,13 +322,13 @@ The constructor accepts no arguments.
 constructor();
 ```
 
-## 9.0 RollbackTransactionQuery
+## 9.0 - RollbackTransactionQuery
 
 A prebuilt query to rollback an active transaction on the database. Refer to the [SQLite Docs](https://www.sqlite.org/lang_transaction.html) for more information on transactions.
 
 It is an error to rollback a transaction on a database without an active transaction.
 
-### 9.1 constructor
+### 9.1 - constructor
 
 The constructor accepts no arguments.
 
