@@ -14,14 +14,19 @@
    limitations under the License.
 */
 
-import {Query, TParamsObject} from './Query';
+import {Query} from './Query';
+import {SQLiteParams} from './SQLiteTypes';
 
-export class RawQuery<TParams extends TParamsObject | void = TParamsObject, TResponse = any> extends Query<TParams, TResponse> {
+export class RawQuery<TParams extends SQLiteParams | void = SQLiteParams, TResponse = any> extends Query<TParams, TResponse> {
     private $sql: string;
 
     public constructor(sql: string, params?: TParams) {
         super(params);
         this.$sql = sql;
+    }
+
+    protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+        return <SQLiteParams>params;
     }
 
     public override getQuery(): string {

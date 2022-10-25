@@ -1,14 +1,10 @@
 
 // Core API
 export {Database} from './Database';
-export {
-    Query,
-    ParamBuilder,
-    IByteArray,
-    IComplexParamValue
-} from './Query';
+export {Query} from './Query';
 export {TransactionMode} from './TransactionMode';
 export {SQLite} from './SQLite';
+export {SQLiteParamValueConverter} from './SQLiteParamValueConverter';
 
 // Prebuilt Queries
 export {RawQuery} from './RawQuery';

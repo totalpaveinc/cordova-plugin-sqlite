@@ -53,7 +53,7 @@ export class SQLite {
     }
 
     public static async close(db: Database): Promise<void> {
-        await this.$exec<[{dbHandle: number}], void>('close', [ { "dbHandle": db.getHandle() } ]);
+        await this.$exec<[{dbHandle: number}], void>('close', [ { dbHandle: db.getHandle() } ]);
         db.__close();
     }
 };
