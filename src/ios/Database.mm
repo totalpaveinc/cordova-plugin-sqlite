@@ -82,24 +82,29 @@
             while (range.location != NSNotFound) {
                 // Remove old param name.
                 sql = [sql stringByReplacingCharactersInRange:range withString:@""];
-                NSString* newParams = @"";
+                NSMutableString* newParamsString = [[NSMutableString alloc] init];
                 for (NSUInteger vi = 0, vcount = [value count]; vi < vcount; ++vi) {
-                    // colonKey + "_" + vi
-                    NSString* paramName = [[colonKey stringByAppendingString:@"_"] stringByAppendingString:[@(vi) stringValue]];
+                    // :$ + key + "_" + vi
+                    // The $ serves 2 purposes
+                    // 1 - ensures paramName is different for array parameter key. E.X :ids will not match with :$ids_0.
+                    // 2 - $ is a reserved character for parameter names and is not included in the parameter format enforcement of the plugin.
+                    NSMutableString* paramName = [NSMutableString stringWithFormat:@"%@%@%@%lu", @"$", key, @"_", (unsigned long)vi];
                     // Add new param name with the value
                     [newParams setValue:value[vi] forKey:paramName];
+                    [paramName insertString:@":" atIndex:0];
+                    
                     // If this is not the last new param, add a comma
                     if (vi + 1 < vcount) {
-                        paramName = [paramName stringByAppendingString:@","];
+                        [paramName appendString:@","];
                     }
-                    newParams = [newParams stringByAppendingString:paramName];
+                    [newParamsString appendString:paramName];
                 }
             
                 // Insert new params into the sql
-                sql = [sql stringByReplacingCharactersInRange:NSMakeRange(range.location, 0) withString:newParams];
+                sql = [sql stringByReplacingCharactersInRange:NSMakeRange(range.location, 0) withString:newParamsString];
 
-                // Search for duplicate param name of old param name. Note earlier we removed the first occurrence of old param name.
-                // So a duplicate will be the new first occurrence.
+
+                // Search for duplicate param name of old param name. Note earlier we removed the first occurrence of old param name. The second occurrence, if any, is now the first occurrence.
                 range = [sql rangeOfString: colonKey];
             }
         }
@@ -200,7 +205,7 @@
     [row appendString:@")"];
     
     // Use our prepared re-useable row string to actually prepare the VALUES string.
-    NSMutableString* values = [NSMutableString stringWithCapacity:rowStringCapacity];
+    NSMutableString* values = [NSMutableString stringWithCapacity:valuesStringCapacity];
     [values appendString:@"VALUES "];
     for (NSInteger i = 0; i < rows; ++i) {
         [values appendString:row];

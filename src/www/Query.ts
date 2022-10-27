@@ -29,6 +29,14 @@ export abstract class Query<TParams, TResponse, TSQLiteParams = SQLiteParams> {
         this.$params = params;
     }
 
+    protected _validateParameterNames(params: TSQLiteParams) {
+        for (let key in params) {
+            if (!(/^([a-zA-Z])+([a-zA-Z0-9_]+)/.test(key))) {
+                throw new Error("Query parameter name contained invalid character. Parameter name should only contain alphanumeric or underscore characters. The first charater must be an alphebetical letter.")
+            }
+        }
+    }
+
     public abstract getQuery(): string;
 
     protected async _getParameters(params: TParams): Promise<TSQLiteParams> {
@@ -44,6 +52,7 @@ export abstract class Query<TParams, TResponse, TSQLiteParams = SQLiteParams> {
 
     public async execute(db: IDatabaseHandle): Promise<TResponse> {
         let params: TSQLiteParams = await this._getParameters(this.$params);
+        this._validateParameterNames(params); // _getParameters is able to create or remove parameter keys. As a result, we must validate the returned value of _getParameters.
         return new Promise<TResponse>((resolve, reject) => {
             cordova.exec(
                 (data: any) => {

@@ -239,6 +239,139 @@ function onDeviceReady() {
                 throw new Error(`Data did not match expectations | ${JSON.stringify(data)} | ${JSON.stringify({id: 9, name: 'Bob', height: 2, data: null})}`);
             }
         });
+        await runTest(8, 'arrays are supported', async () => {
+            await new RawQuery<SQLiteParams>('SELECT * FROM test WHERE id IN (:ids)', {
+                ids: [1, 2, 3]
+            }).execute(db);
+            // Expect to not error
+        });
+
+        await runTest(9, 'multiple arrays params are supported', async () => {
+            await new RawQuery<SQLiteParams>('SELECT * FROM test WHERE id IN (:ids) OR id IN (:ids)', {
+                ids: [1, 2, 3]
+            }).execute(db);
+            // Expect to not error
+        });
+
+        await runTest(10, 'query parameter names supports alphanumeric and _', async () => {
+            await new RawQuery<SQLiteParams>('', {
+                abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_: "bob"
+            });
+        });
+
+        await runTest(11, 'query parameter name\'s first character does not support numeric or underscore.', async () => {
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    _: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character _");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    0: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 0");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    1: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 1");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    2: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 2");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    3: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 3");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    4: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 4");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    5: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 5");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    6: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 6");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    7: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 7");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    8: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 8");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    9: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character 9");
+            }
+            catch (ex) {/* consume expected error */}
+        });
+
+        await runTest(12, 'query parameter name does not support & as first character', async () => {
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    $bob: "bob"
+                });
+                throw new Error("Query Parameter Name supported first character &");
+            }
+            catch (ex) {/* consume expected error */}
+        });
+
+        await runTest(13, 'query parameter name does not support &', async () => {
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    b$ob: "bob"
+                });
+                throw new Error("Query Parameter Name supported character & in b$ob");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    bob$: "bob"
+                });
+                throw new Error("Query Parameter Name supported character & in bob$");
+            }
+            catch (ex) {/* consume expected error */}
+            try {
+                await new RawQuery<SQLiteParams>('', {
+                    bob_$: "bob"
+                });
+                throw new Error("Query Parameter Name supported character & in bob_$");
+            }
+            catch (ex) {/* consume expected error */}
+        });
 
         let results = await new RawQuery('SELECT * FROM test').execute(db);
         for (let i = 0; i < results.length; i++) {

@@ -17,6 +17,8 @@ export abstract class BulkInsertQuery<TParams extends TSQLiteParams> extends Que
         `;
     }
 
+    protected _validateParameterNames() { /* No-op because we never have parameter names to validate */ }
+
     protected override _getNativeMethod(): string {
         return 'bulkInsert';
     }
