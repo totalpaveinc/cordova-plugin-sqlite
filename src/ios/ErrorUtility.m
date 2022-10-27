@@ -1,12 +1,12 @@
 
-#import "Error.h";
+#import "Error.h"
 #import "ErrorUtility.h"
 
 @implementation ErrorUtility
     +(NSDictionary*)errorToDictionary:(NSError*)error {
         NSString* message = error.userInfo[NSLocalizedDescriptionKey];
         NSError*_Nullable underlyingError = error.userInfo[NSUnderlyingErrorKey];
-        NSDictionary* cause = [NSNull null];
+        NSDictionary*_Nullable cause = [NSNull null];
         if (![underlyingError isEqual: [NSNull null]] && underlyingError != nil) {
             cause = [ErrorUtility errorToDictionary: underlyingError];
         }
