@@ -26,6 +26,7 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [5.4 - execute](#54---execute)
   - [5.5 - Note on Data Types and Return Types](#55---note-on-data-types-and-return-types)
   - [5.6 - _getNativeMethod](#56---_getnativemethod)
+  - [5.7 - _validateParameterNames](#57---_validateparameternames)
 - [6.0 - RawQuery](#60---rawquery)
   - [6.1 - constructor](#61---constructor)
 - [7.0 - StartTransactionQuery](#70---starttransactionquery)
@@ -176,6 +177,8 @@ The `Query` class has three generic types: `TParams`, `TResponse`, `TSQLiteParam
 
 Named parameters can be provided in the SQL query which are populated by the `TParams` properties. Named parameters are binded using SQLite's binding APIs and therefore are safely escaped.
 
+The parameter names can only contain alphanumeric and underscore characters. The first must be an alphebetical letter.
+
 Note that the `TResponse` generic type is provided to assert developer intent. It does not guarentee that the underlying returned data is actually the declared type. However, if there is a mismatch, it is likely either an error in the typing or in the actual SQL query statement.
 
 Note `Query` does not support multi-insert. See [BulkInsertQuery](#100---bulkinsertquery) instead.
@@ -288,9 +291,13 @@ let blob: Blob = new Blob([
 
 This isn't done automatically to avoid iterating over the resultset, when the application is likely to do it anyway.
 
-### 5.6 -  _getNativeMethod
+### 5.6 - _getNativeMethod
 
 `_getNativeMethod` is internal code. Just ignore it.
+
+### 5.7 - _validateParameterNames
+
+`_validateParameterNames` is internal code. Just ignore it.
 
 ## 6.0 - RawQuery
 

@@ -20,4 +20,4 @@ export type SQLiteDouble = number;
 export type SQLiteBlob = IByteArray;
 export type SQLiteNull = null;
 export type SQLiteType = SQLiteText | SQLiteDouble | SQLiteInteger | SQLiteNull | SQLiteBlob;
-export type SQLiteParams = Record<string, SQLiteType>;
+export type SQLiteParams = Record<string, SQLiteType | Array<SQLiteType>>;

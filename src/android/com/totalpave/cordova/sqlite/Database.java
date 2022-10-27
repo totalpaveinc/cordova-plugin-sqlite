@@ -73,16 +73,24 @@ public class Database {
             while (paramIndex != -1) {
                 // Remove old param name
                 sql = sql.replaceFirst(colonKey, "");
-                String newParams = "";
+                StringBuilder newParams = new StringBuilder();
                 for (int vi = 0, vlength = value.length(); vi < vlength; ++vi) {
-                    String paramName = colonKey + "_" + Integer.toString(vi);
+                    StringBuilder paramName = new StringBuilder();
+                    paramName.append('$');
+                    paramName.append(key);
+                    paramName.append('_');
+                    paramName.append(vi);
                     // Add new param name with the value
-                    vars.put(paramName, value.get(vi));
-                    newParams += paramName + (vi + 1 < vlength ? "," : "");
+                    vars.put(paramName.toString(), value.get(vi));
+                    paramName.insert(0, ':');
+                    newParams.append(paramName);
+                    if (vi + 1 < vlength) {
+                        newParams.append(',');
+                    }
                 }
 
                 // Insert new params into the sql
-                sql = sql.substring(0, paramIndex - 1) + newParams + sql.substring(paramIndex);
+                sql = sql.substring(0, paramIndex) + newParams + sql.substring(paramIndex);
 
                 // Search for duplicate param name of old param name. Note earlier we removed the first occurrence of old param name.
                 // So a duplicate will be the new first occurrence.
