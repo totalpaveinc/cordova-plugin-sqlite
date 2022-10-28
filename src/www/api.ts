@@ -2,7 +2,7 @@
 // Core API
 export {Database} from './Database';
 export {Query} from './Query';
-export {BulkInsertQuery} from './BulkInsertQuery';
+export {BulkInsertQuery, TBulkInsertParams} from './BulkInsertQuery';
 export {TransactionMode} from './TransactionMode';
 export {SQLite} from './SQLite';
 export {SQLiteParamValueConverter} from './SQLiteParamValueConverter';
