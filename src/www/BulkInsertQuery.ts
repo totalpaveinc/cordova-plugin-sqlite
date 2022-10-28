@@ -2,10 +2,9 @@
 import {Query} from './Query';
 import {SQLiteType} from './SQLiteTypes';
 
-export type TBulkInsertParams = Array<Array<unknown>>;
-type TSQLiteParams = Array<Array<SQLiteType>>;
+export type TBulkInsertParams = Array<Array<SQLiteType>>;
 
-export abstract class BulkInsertQuery<TParams extends TSQLiteParams> extends Query<TParams, void, TSQLiteParams> {
+export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends Query<TParams, void, TBulkInsertParams> {
     public getQuery(): string {
         return `
             INSERT INTO ${this._getTable()}
@@ -23,7 +22,7 @@ export abstract class BulkInsertQuery<TParams extends TSQLiteParams> extends Que
         return 'bulkInsert';
     }
 
-    protected override async _getParameters(params: TParams): Promise<TSQLiteParams> {
+    protected override async _getParameters(params: TParams): Promise<TBulkInsertParams> {
         return params;
     }
 
