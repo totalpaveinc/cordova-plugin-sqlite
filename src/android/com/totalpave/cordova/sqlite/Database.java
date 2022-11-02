@@ -31,6 +31,9 @@ import org.json.JSONException;
 
 public class Database {
     private long $handle;
+    // Maxinum number of variables per query, https://www.sqlite.org/c3ref/c_limit_attached.html#sqlitelimitvariablenumber.
+    // Actual number is 32766. We use 32666 to add a buffer in the event that other variables
+    private final int MAX_VARIABLE_COUNT = 32666;
 
     public Database(File fpath, int openFlags) throws SqliteException {
         File directory = fpath.getParentFile();
@@ -145,27 +148,21 @@ public class Database {
         // It is invalid to have a variable number of columns, so assume the column count is the same across all rows is okay.
         int columns = vars.getJSONArray(0).length();
         
+        int chunkSize = (int)Math.floor((double)MAX_VARIABLE_COUNT / (double)columns);
+        int iterationsRequired = (int)Math.ceil((double)rows / (double)chunkSize);
+        int lastIterationLength = rows - (chunkSize * (iterationsRequired - 1));
+
         /*
-         (columns * 2) - last comma + ( and )
-         (?,?)
-         (2 * 2) - 1 + 2
-         4 + 1
-         5
+             (columns * 2) - last comma + ( and )
+             (?,?)
+             (2 * 2) - 1 + 2
+             4 + 1
+             5
          */
         int rowStringCapacity = (columns * 2) - 1 + 2;
-        /*
-         (rows * rowStringCapacity) + commas - last comma + "VALUES "
-         VALUES (?,?),(?,?)
-         (2 * 5) + 2 - 1 + 7
-         10 + 8
-         18
-         */
-        int valuesStringCapacity = (rows * rowStringCapacity) + rows - 1 + 7;
-
         // Each row of values will look the exact same while they are unbounded. For that reason, let's prepare a string that we can re-use.
         StringBuilder row = new StringBuilder(rowStringCapacity);
         row.append('(');
-
         for (int i = 0; i < columns; ++i) {
             row.append('?');
             if ((i + 1) < columns) {
@@ -174,44 +171,87 @@ public class Database {
         }
         row.append(')');
 
+        /*
+             (chunked rows * rowStringCapacity) + commas - last comma + "VALUES "
+             VALUES (?,?),(?,?)
+             (2 * 5) + 2 - 1 + 7
+             10 + 8
+             18
+         */
+        int valuesStringCapacity = (chunkSize * rowStringCapacity) + chunkSize - 1 + 7;
+        int lastIterationValuesStringCapacity = (lastIterationLength * rowStringCapacity) + lastIterationLength - 1 + 7;
+
         // Use our prepared re-useable row string to actually prepare the VALUES string.
         StringBuilder values = new StringBuilder(valuesStringCapacity);
         values.append("VALUES ");
-        for (int i = 0; i < rows; ++i) {
+        for (int i = 0; i < chunkSize; ++i) {
             values.append(row);
-            if ((i + 1) < rows) {
+            if ((i + 1) < chunkSize) {
                 values.append(',');
             }
         }
 
-        // Replace :BulkInsertValue with VALUES string
-        sql = sql.replaceFirst(":BulkInsertValue", values.toString());
+        StringBuilder lastIterationValues = new StringBuilder(lastIterationValuesStringCapacity);
+        lastIterationValues.append("VALUES ");
+        for (int i = 0; i < lastIterationLength; ++i) {
+            lastIterationValues.append(row);
+            if ((i + 1) < lastIterationLength) {
+                lastIterationValues.append(',');
+            }
+        }
+
+        String chunkSql = sql.replaceFirst(":BulkInsertValue", values.toString());
 
         long statement;
         try {
-            statement = Sqlite.prepare($handle, sql);
+            statement = Sqlite.prepare($handle, chunkSql);
         }
         catch (SqliteException ex) {
             JSONObject details = new JSONObject();
-            details.put(Error.QUERY_KEY, sql);
+            details.put(Error.QUERY_KEY, chunkSql);
             ex.setDetails(details);
             throw ex;
         }
 
-        // We create a new try-catch here because it's unsafe to call finalize on a failed statement.
-        try {
-            this.$bindBulkVars(statement, vars);
-            Sqlite.step(statement);
-            Sqlite.finalize(statement);
-            return;
+        for (int i = 0; i < iterationsRequired; ++i) {
+            int varsStartIndex = i * chunkSize;
+            int varsEndIndex;
+
+            if (i + 1 == iterationsRequired) { // This is meant to run on the last iteration
+                varsEndIndex = varsStartIndex + lastIterationLength;
+                chunkSql = sql.replaceFirst(":BulkInsertValue", lastIterationValues.toString());
+                try {
+                    Sqlite.finalize(statement); // Finalize chunkSql statement.
+                    statement = Sqlite.prepare($handle, chunkSql);
+                }
+                catch (SqliteException ex) {
+                    JSONObject details = new JSONObject();
+                    details.put(Error.QUERY_KEY, chunkSql);
+                    ex.setDetails(details);
+                    throw ex;
+                }
+            }
+            else {
+                varsEndIndex = (i + 1) * chunkSize;
+            }
+
+            // We create a new try-catch here because it's unsafe to call finalize on a failed statement.
+            try {
+                Sqlite.reset(statement);
+                this.$bindBulkVars(statement, vars, varsStartIndex, varsEndIndex);
+                Sqlite.step(statement);
+            }
+            catch (SqliteException ex) {
+                Sqlite.finalize(statement);
+                JSONObject details = new JSONObject();
+                details.put(Error.QUERY_KEY, chunkSql);
+                details.put("iteration", i);
+                ex.setDetails(details);
+                throw ex;
+            }
         }
-        catch (SqliteException ex) {
-            Sqlite.finalize(statement);
-            JSONObject details = new JSONObject();
-            details.put(Error.QUERY_KEY, sql);
-            ex.setDetails(details);
-            throw ex;
-        }
+
+        Sqlite.finalize(statement);
     }
 
     private final void $bindVars(long statement, JSONObject vars) throws JSONException, SqliteException {
@@ -259,10 +299,10 @@ public class Database {
         }
     }
 
-    private final void $bindBulkVars(long statement, JSONArray vars) throws JSONException, SqliteException {
+    private final void $bindBulkVars(long statement, JSONArray vars, int startIndex, int endIndex) throws JSONException, SqliteException {
         // index is 1-base: https://www.sqlite.org/c3ref/bind_blob.html
         int index = 0;
-        for (int x = 0, xlength = vars.length(); x < xlength; ++x) {
+        for (int x = startIndex; x < endIndex; ++x) {
             JSONArray row = vars.getJSONArray(x);
             for (int y = 0, ylength = row.length(); y < ylength; ++y) {
                 Object value = row.get(y);

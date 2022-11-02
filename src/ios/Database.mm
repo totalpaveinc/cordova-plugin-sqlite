@@ -9,6 +9,10 @@
     sqlite3* $db;
 }
 
+// Maxinum number of variables per query, https://www.sqlite.org/c3ref/c_limit_attached.html#sqlitelimitvariablenumber.
+// Actual number is 32766. We use 32666 to add a buffer in the event that other variables
+const NSInteger MAX_VARIABLE_COUNT = 32666;
+
 - (id _Nonnull) initWithPath:(NSURL*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
 {
     const char * cxxPath = [[path path] UTF8String];
@@ -169,12 +173,16 @@
 
 - (void) bulkRun:(NSString*_Nonnull) sql params:(NSArray*_Nullable) params error:(NSError*_Nullable*_Nonnull) error {
     sqlite3_stmt* statement;
-
+    int status;
+    
     // Prepare VALUES string
     NSInteger rows = [params count];
     // It is invalid to have a variable number of columns, so assume the column count is the same across all rows is okay.
     NSInteger columns = [params[0] count];
-    
+
+    NSInteger chunkSize = floor((double)MAX_VARIABLE_COUNT / (double)columns);
+    NSInteger iterationsRequired = ceil((double)rows / (double)chunkSize);
+    NSInteger lastIterationLength = rows - (chunkSize * (iterationsRequired - 1));
 
     /*
         (columns * 2) - last comma + ( and )
@@ -184,15 +192,6 @@
         5
     */
     NSUInteger rowStringCapacity = (columns * 2) - 1 + 2;
-    /*
-        (rows * rowStringCapacity) + commas - last comma + "VALUES "
-        VALUES (?,?),(?,?)
-        (2 * 5) + 2 - 1 + 7
-        10 + 8
-        18
-    */
-    NSUInteger valuesStringCapacity = (rows * rowStringCapacity) + rows - 1 + 7;
-
     // Each row of values will look the exact same while they are unbounded. For that reason, let's prepare a string that we can re-use.
     NSMutableString* row = [NSMutableString stringWithCapacity:rowStringCapacity];
     [row appendString:@"("];
@@ -204,53 +203,99 @@
     }
     [row appendString:@")"];
     
+    /*
+        (rows * rowStringCapacity) + commas - last comma + "VALUES "
+        VALUES (?,?),(?,?)
+        (2 * 5) + 2 - 1 + 7
+        10 + 8
+        18
+    */
+    NSUInteger valuesStringCapacity = (chunkSize * rowStringCapacity) + chunkSize - 1 + 7;
+    NSInteger lastIterationValuesStringCapacity = (lastIterationLength * rowStringCapacity) + lastIterationLength - 1 + 7;
     // Use our prepared re-useable row string to actually prepare the VALUES string.
     NSMutableString* values = [NSMutableString stringWithCapacity:valuesStringCapacity];
     [values appendString:@"VALUES "];
-    for (NSInteger i = 0; i < rows; ++i) {
+    for (NSInteger i = 0; i < chunkSize; ++i) {
         [values appendString:row];
-        if ((i + 1) < rows) {
+        if ((i + 1) < chunkSize) {
             [values appendString:@","];
+        }
+    }
+    
+    NSMutableString* lastIterationValues = [NSMutableString stringWithCapacity:lastIterationValuesStringCapacity];
+    [lastIterationValues appendString:@"VALUES "];
+    for (NSInteger i = 0; i < lastIterationLength; ++i) {
+        [lastIterationValues appendString:row];
+        if ((i + 1) < lastIterationLength) {
+            [lastIterationValues appendString:@","];
         }
     }
     
     // Replace :BulkInsertValue with VALUES string
     NSRange range = [sql rangeOfString: @":BulkInsertValue"];
-    sql = [sql stringByReplacingCharactersInRange:range withString:values];
+    NSString* chunkSql = [sql stringByReplacingCharactersInRange:range withString:values];
     
-    const char * cxxSql = [sql UTF8String];
-    int status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
+    const char * cxxSql = [chunkSql UTF8String];
+    status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
             initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
             code:status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                ERROR_QUERY_KEY: sql
+                ERROR_QUERY_KEY: chunkSql
             }
         ];
         sqlite3_finalize(statement);
         return;
     }
     
-    [self $bindBulkParams:statement params:params error: error];
-    if (*error != nil) {
-        sqlite3_finalize(statement);
-        return;
-    }
-    
-    int columnCount = sqlite3_column_count(statement);
-    
-    status = sqlite3_step(statement);
-    if (status != SQLITE_DONE) {
-        *error = [[NSError alloc]
-            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
-            code:status
-            userInfo:@{
-                NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                ERROR_QUERY_KEY: sql
+    for (NSInteger i = 0; i < iterationsRequired; ++i) {
+        NSInteger varsStartIndex = i * chunkSize;
+        NSInteger varsEndIndex;
+        
+        if (i + 1 == iterationsRequired) {
+            varsEndIndex = varsStartIndex + lastIterationLength;
+            chunkSql = [sql stringByReplacingCharactersInRange:range withString:lastIterationValues];
+            
+            sqlite3_finalize(statement);
+            const char * cxxSql = [chunkSql UTF8String];
+            status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
+            if (status != SQLITE_OK) {
+                *error = [[NSError alloc]
+                    initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                    code:status
+                    userInfo:@{
+                        NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
+                        ERROR_QUERY_KEY: chunkSql
+                    }
+                ];
+                sqlite3_finalize(statement);
+                return;
             }
-        ];
+        }
+        else {
+            varsEndIndex = (i + 1) * chunkSize;
+        }
+        
+        sqlite3_reset(statement);
+        [self $bindBulkParams:statement params:params startIndex: varsStartIndex endIndex: varsEndIndex error: error];
+        if (*error != nil) {
+            sqlite3_finalize(statement);
+            return;
+        }
+        status = sqlite3_step(statement);
+        if (status != SQLITE_DONE) {
+            *error = [[NSError alloc]
+                initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                code:status
+                userInfo:@{
+                    NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
+                    ERROR_QUERY_KEY: chunkSql
+                }
+            ];
+            return;
+        }
     }
     sqlite3_finalize(statement);
 }
@@ -259,10 +304,10 @@
     sqlite3_close_v2(self->$db);
 }
 
-- (void) $bindBulkParams:(sqlite3_stmt*_Nonnull) statement params:(NSArray*_Nonnull) params error:(NSError*_Nullable*_Nonnull) error {
+- (void) $bindBulkParams:(sqlite3_stmt*_Nonnull) statement params:(NSArray*_Nonnull) params startIndex:(NSInteger) startIndex endIndex:(NSInteger) endIndex error:(NSError*_Nullable*_Nonnull) error {
     // index is 1-base: https://www.sqlite.org/c3ref/bind_blob.html
     int index = 0;
-    for (NSInteger x = 0, xlength = [params count]; x < xlength; ++x) {
+    for (NSInteger x = startIndex; x < endIndex; ++x) {
         NSArray* row = params[x];
         for (NSInteger y = 0, ylength = [row count]; y < ylength; ++y) {
             index++;
