@@ -20,6 +20,7 @@
         Database *db = [[Database alloc]
             initWithPath: [NSURL URLWithString: [command.arguments objectAtIndex:0]]
             openFlags: [[command.arguments objectAtIndex:1] intValue]
+            busyTimeout: [[command.arguments objectAtIndex:2] intValue]
             error:&error
         ];
         if (error) {

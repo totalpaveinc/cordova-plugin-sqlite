@@ -17,6 +17,7 @@
 package com.totalpave.cordova.sqlite;
 
 import com.totalpave.sqlite3.SqliteException;
+import com.totalpave.sqlite3.Sqlite;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -45,6 +46,8 @@ public class SQLite extends CordovaPlugin {
         if (action.equals("open")) {
             String dbPath = args.getString(0);
             int openFlags = args.getInt(1);
+            int busyTimeout = args.getInt(2);
+
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
@@ -52,6 +55,7 @@ public class SQLite extends CordovaPlugin {
                             long dbHandle = $openDatabase(dbPath, openFlags);
                             JSONObject response = new JSONObject();
                             response.put("dbHandle", Long.toString(dbHandle));
+                            Sqlite.setBusyTimeout(dbHandle, busyTimeout);
                             callback.success(response);
                         }
                         catch (SqliteException ex) {
