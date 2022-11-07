@@ -95,6 +95,30 @@ class BulkInsertPersonQuery extends BulkInsertQuery<TBulkInsertPersonQueryParams
     }
 }
 
+class BulkInsertColumnEscapeQuery extends BulkInsertQuery<TBulkInsertPersonQueryParams> {
+    protected _getTable(): string {
+        return "test";
+    }
+
+    protected _getColumns(): Array<string> {
+        return [
+            "id",
+            "`name`",
+            "test.height",
+            "`test`.`data`"
+        ];
+    }
+
+    protected _getOnConflict(): string {
+        return `
+            ON CONFLICT (id) DO UPDATE SET
+                name = excluded.name,
+                height = excluded.height,
+                data = excluded.data
+        `;
+    }
+}
+
 document.addEventListener('deviceready', onDeviceReady, false);
 
 let db: Database;
@@ -371,6 +395,15 @@ function onDeviceReady() {
                 throw new Error("Query Parameter Name supported character & in bob_$");
             }
             catch (ex) {/* consume expected error */}
+        });
+
+        await runTest(14, 'BulkInsertQuery escapes columns correctly', async () => {
+            let query = new BulkInsertColumnEscapeQuery(<TBulkInsertPersonQueryParams>{});
+            let queryStr = query.getQuery();
+            let expectation = "`id`,`name`,`test`.`height`,`test`.`data`";
+            if (queryStr.indexOf(expectation) === -1) {
+                throw new Error(`BulkInsertQuery did not properly escape column names. Expected "${queryStr}" to contain "${expectation}"`);
+            }
         });
 
         let results = await new RawQuery('SELECT * FROM test').execute(db);

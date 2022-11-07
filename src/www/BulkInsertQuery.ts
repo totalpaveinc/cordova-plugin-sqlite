@@ -5,11 +5,27 @@ import {SQLiteType} from './SQLiteTypes';
 export type TBulkInsertParams = Array<Array<SQLiteType>>;
 
 export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends Query<TParams, void, TBulkInsertParams> {
+    private $escapeColumn(column: string): string {
+        let pieces: Array<string> = column.split('.');
+        if (pieces[0].charAt(0) != '`') {
+            pieces[0] = `\`${pieces[0]}\``;
+        }
+        if (pieces[1] && pieces[1].charAt(0) != '`') {
+            pieces[1] = `\`${pieces[1]}\``;
+        }
+
+        return pieces[0] + (pieces[1] ? `.${pieces[1]}` : '');
+    }
+
     public getQuery(): string {
+        let columns: Array<string> = this._getColumns().slice();
+        for (let i = 0; i < columns.length; ++i ){
+            columns[i] = this.$escapeColumn(columns[i]);
+        }
         return `
             INSERT INTO ${this._getTable()}
             (
-                ${this._getColumns().join(",")}
+                ${columns.join(",")}
             )
             :BulkInsertValue
             ${this._getOnConflict()}
