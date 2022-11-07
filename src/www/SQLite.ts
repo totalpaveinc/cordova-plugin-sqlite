@@ -16,6 +16,7 @@
 
 import {Database} from './Database';
 import {IError} from './IError';
+import {SQLiteInteger} from './SQLiteTypes';
 
 enum OpenFlags {
     READ_ONLY       = 0x00000001,
@@ -43,12 +44,24 @@ export class SQLite {
         });
     }
 
-    public static async open(path: string, writeAccess: boolean): Promise<Database> {
+    public static async open(path: string, writeAccess: boolean, busyTimeout: SQLiteInteger = 10000): Promise<Database> {
         if (path.indexOf("file://") !== 0) {
             throw new Error("Database path must start with file://");
         }
 
-        let dbHandle: number = (await this.$exec<[string, number], {dbHandle: number}>('open', [path, writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY])).dbHandle;
+        let dbHandle: number = (
+            await this.$exec<
+                [string, number, SQLiteInteger],
+                {dbHandle: number}
+            >(
+                'open',
+                [
+                    path,
+                    writeAccess ? OpenFlags.CREATE | OpenFlags.READ_WRITE : OpenFlags.READ_ONLY,
+                    busyTimeout
+                ]
+            )
+        ).dbHandle;
         return new Database(dbHandle);
     }
 

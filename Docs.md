@@ -63,14 +63,18 @@ Generally speaking, SQLite is used on local clients and it's presumed that the a
 
 ### 2.2 - open
 
-Opens a new connection the database at __path__. By default, the connection will be readonly and will error if the database does not already exists. If __writeAccess__ is `true`, then the database will be opened with write mode enabled, and if the database file does not exists, it will be created.
+Opens a new connection the database at __path__.
+
+By default, the connection will be readonly and will error if the database does not already exists. If __writeAccess__ is `true`, then the database will be opened with write mode enabled, and if the database file does not exists, it will be created.
+
+busyTimeout is passed into [sqlite3_busy_timeout](https://www.sqlite.org/c3ref/busy_timeout.html). The value is time in milliseconds and it defaults to 10 seconds.
 
 The returned value is a [Database](#30---database). It represents the underlying database handle. Keep a reference to this value for preparing SQL statements and for closing the database later.
 
 ##### Signature
 
 ```typescript
-static async open(path: string, writeAccess: boolean): Promise<number>;
+static async open(path: string, writeAccess: boolean, busyTimeout: SQLiteInteger = 10000): Promise<number>;
 ```
 
 ### 2.3 - close

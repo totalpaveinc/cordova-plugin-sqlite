@@ -13,7 +13,7 @@
 // Actual number is 32766. We use 32666 to add a buffer in the event that other variables
 const NSInteger MAX_VARIABLE_COUNT = 32666;
 
-- (id _Nonnull) initWithPath:(NSURL*_Nonnull) path openFlags:(int) openFlags error:(NSError*_Nullable*_Nonnull) error
+- (id _Nonnull) initWithPath:(NSURL*_Nonnull) path openFlags:(int) openFlags busyTimeout:(int) busyTimeout error:(NSError*_Nullable*_Nonnull) error
 {
     const char * cxxPath = [[path path] UTF8String];
 
@@ -50,6 +50,8 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
         ];
         return self;
     }
+
+    sqlite3_busy_timeout(self->$db, busyTimeout);
 
     return self;
 }
