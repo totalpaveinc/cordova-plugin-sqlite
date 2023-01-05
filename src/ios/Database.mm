@@ -1,9 +1,9 @@
 
 #import "Database.h"
 #import <sqlite3.h>
-#import <tp/sqlite/utilities.h>
+#import <sqlite3/tp/sqlite/utilities.h>
 #import <cmath>
-#include <vector>
+#import <vector>
 
 @implementation Database {
     sqlite3* $db;
