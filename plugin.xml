@@ -7,7 +7,6 @@
   <keywords>cordova,cordova-ios,cordova-android,sqlite, sqlite3</keywords>
   <repo>https://github.com/totalpave/cordova-plugin-sqlite</repo>
 
-  <dependency id="@totalpave/cordova-plugin-libcxx" version="25.0.8775105" />
   <dependency id="@totalpave/cordova-plugin-libsqlite" version="0.0.16" />
 
   <js-module src="www/sqlite.js" name="SQLite">
