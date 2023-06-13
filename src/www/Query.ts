@@ -39,6 +39,19 @@ export abstract class Query<TParams, TResponse, TSQLiteParams = SQLiteParams> {
 
     public abstract getQuery(): string;
 
+    /**
+     * Returns the parameters as given to the Query
+     * @returns 
+     */
+    public getParams(): TParams {
+        return this.$params;
+    }
+
+    /**
+     * Implement to translate unknown parameter types into valid SQL data types
+     * @param params 
+     * @returns 
+     */
     protected async _getParameters(params: TParams): Promise<TSQLiteParams> {
         return;
     }
