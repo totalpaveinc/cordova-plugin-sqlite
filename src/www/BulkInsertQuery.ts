@@ -1,10 +1,10 @@
 
 import {Query} from './Query';
-import {SQLiteType} from './SQLiteTypes';
+import {SQLiteParams, SQLiteType} from './SQLiteTypes';
 
 export type TBulkInsertParams = Array<Array<SQLiteType>>;
 
-export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends Query<TParams, void, TBulkInsertParams> {
+export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends Query<TParams, void> {
     private $escapeColumn(column: string): string {
         let pieces: Array<string> = column.split('.');
         if (pieces[0].charAt(0) != '`') {
@@ -38,8 +38,8 @@ export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends
         return 'bulkInsert';
     }
 
-    protected override async _getParameters(params: TParams): Promise<TBulkInsertParams> {
-        return params;
+    protected override _useParamsPassthrough(): boolean {
+        return true;
     }
 
     /**
