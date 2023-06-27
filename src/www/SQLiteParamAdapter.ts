@@ -72,6 +72,9 @@ export class SQLiteParamAdapter {
     }
 
     protected _adaptDate(v: Date): SQLiteType {
+        if (v.toString() === 'Invalid Date') {
+            throw new Error('Invalid Date');
+        }
         return SQLiteParamValueConverter.dateToText(v);
     }
 
