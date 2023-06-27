@@ -34,8 +34,15 @@ import {SQLiteParamAdapter} from './SQLiteParamAdapter';
  * Custom type adaptions can be implemented by providing a custom SQLiteParamAdapter.
  * 
  * If you can guarentee that the TParams consists of only valid SQLite Types, then
- * the _useParamsPassthrough can be used to skip the adaption step, which might be
+ * the overriding _getParameters can be used to skip the adaption step, which might be
  * a significant performance gain on large param queries, such as bulk inserts.
+ * 
+ * @example
+ * ```typescript
+ * protected override _getParameters(params: TParams): SQLiteParams {
+ *  return <SQLiteParams><unknown>params;
+ * }
+ * ```
  */
 export abstract class Query<TParams, TResponse> {
     private $params: TParams;

@@ -141,7 +141,7 @@ export class SQLiteParamAdapter {
             let outValue: SQLiteValue;
             if (inValue instanceof Array) {
                 if (inValue.length === 0) {
-                    // skip empty sections, don't add it to param object
+                    // skip empty arrays, don't add it to param object
                     continue;
                 }
 
