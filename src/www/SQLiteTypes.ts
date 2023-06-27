@@ -20,4 +20,26 @@ export type SQLiteDouble = number;
 export type SQLiteBlob = IByteArray;
 export type SQLiteNull = null;
 export type SQLiteType = SQLiteText | SQLiteDouble | SQLiteInteger | SQLiteNull | SQLiteBlob;
-export type SQLiteParams = Record<string, SQLiteType | Array<SQLiteType>>;
+
+/**
+ * @since v0.2.0
+ */
+export type SQLiteArray<TSQLiteType extends SQLiteType = SQLiteType> = TSQLiteType[];
+
+
+/**
+ * @since v0.2.0
+ */
+export type SQLiteKWargs = Record<string, SQLiteType | SQLiteArray>;
+
+/**
+ * @since v0.2.0
+ */
+export type SQLiteListArgs = SQLiteType[][];
+
+/**
+ * @since v0.2.0
+ */
+export type SQLiteValue = SQLiteType | SQLiteArray;
+
+export type SQLiteParams = SQLiteKWargs | SQLiteListArgs;

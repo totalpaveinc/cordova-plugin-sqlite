@@ -11,6 +11,7 @@
         "noImplicitThis": true,
         "alwaysStrict": true,
         "moduleResolution": "node",
+        "esModuleInterop": true,
         "plugins": [],
         "incremental": true
     },

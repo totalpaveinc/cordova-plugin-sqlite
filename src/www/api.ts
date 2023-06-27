@@ -5,7 +5,9 @@ export {Query} from './Query';
 export {BulkInsertQuery, TBulkInsertParams} from './BulkInsertQuery';
 export {TransactionMode} from './TransactionMode';
 export {SQLite} from './SQLite';
+export {CreateIndexQuery, ICreateIndexQueryParams} from './CreateIndexQuery';
 export {SQLiteParamValueConverter} from './SQLiteParamValueConverter';
+export {SQLiteParamAdapter} from './SQLiteParamAdapter';
 
 // Prebuilt Queries
 export {RawQuery} from './RawQuery';

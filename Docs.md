@@ -23,10 +23,11 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [5.1 - Constructor](#51---constructor)
   - [5.2 - getQuery](#52---getquery)
   - [5.3 - _getParameters](#52---getquery)
-  - [5.4 - execute](#54---execute)
-  - [5.5 - Note on Data Types and Return Types](#55---note-on-data-types-and-return-types)
-  - [5.6 - _getNativeMethod](#56---_getnativemethod)
-  - [5.7 - _validateParameterNames](#57---_validateparameternames)
+  - [5.4 - Reserved](#54---reserved)
+  - [5.5 - execute](#55---execute)
+  - [5.6 - Note on Data Types and Return Types](#56---note-on-data-types-and-return-types)
+  - [5.7 - _getNativeMethod](#57---_getnativemethod)
+  - [5.8 - _validateParameterNames](#58---_validateparameternames)
 - [6.0 - RawQuery](#60---rawquery)
   - [6.1 - constructor](#61---constructor)
 - [7.0 - StartTransactionQuery](#70---starttransactionquery)
@@ -39,6 +40,7 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [10.1 - _getTable](#101---_gettable)
   - [10.2 - _getColumns](#102---_getcolumns)
   - [10.3 - _getOnConflict](#103---_getonconflict)
+- [11.0 - SQLiteParamAdapter](#110---sqliteparamadapter)
 
   
 
@@ -218,9 +220,13 @@ abstract getQuery(): string;
 
 ### 5.3 - _getParameters
 
-A hook to do work on parameters just before they are sent to native.
+A hook to do work on parameters just before they are sent to native. The primary intention for this hook is to convert the query's `TParams` to [SQLiteParams](#41---sqliteparams). Use [SQLiteParamValueConverter](#43---sqliteparamvalueconverter) to accomplish this.
 
-__The return value of \_getParameters is the actual data sent to native. All queries that use parameters must override and implement this hook.__
+As of v0.2.0, a default implementation is used to convert a common set of JS types into a compatible SQLite Type. Implementing this method is _no longer_ required or recommended.
+
+For versions older than v0.2.0:
+
+The return value of \_getParameters is the actual data sent to native. All queries that use parameters must override and implement this hook.
 
 The default behaviour `_getParameters` is to act as if there is no parameters. 
 
@@ -229,8 +235,6 @@ The default behaviour `_getParameters` is to act as if there is no parameters.
 ```typescript
 async _getParameters(params: TParams): Promise<SQLiteParams>;
 ```
-
-The primary intention for this hook is to convert the query's `TParams` to [SQLiteParams](#41---sqliteparams). Use [SQLiteParamValueConverter](#43---sqliteparamvalueconverter) to accomplish this.
 
 ##### Examples
 
@@ -259,7 +263,11 @@ class MyQuery extends Query<IMyQueryParams, void> {
 }
 ```
 
-### 5.4 - execute
+### 5.4 - Reserved
+
+Reserved
+
+### 5.5 - execute
 
 Executes the `Query` onto the given [Database](#30---database). The database must not be closed or undefined behaviour will occur. Query parameters are passed through.
 
@@ -275,7 +283,7 @@ For `SELECT` queries, the return type is generally an array of json objects, who
 async execute(db: Database): Promise<TResponse>;
 ```
 
-### 5.5 - Note on Data Types and Return Types
+### 5.6 - Note on Data Types and Return Types
 
 SQLite data types are quite primitive, and supports 4 different data types:
  - integers (int, size are dynamic depending on the magnitude of the value, could be 0, 1, 2, 3, 4, 5, or 8 bytes)
@@ -295,11 +303,11 @@ let blob: Blob = new Blob([
 
 This isn't done automatically to avoid iterating over the resultset, when the application is likely to do it anyway.
 
-### 5.6 - _getNativeMethod
+### 5.7 - _getNativeMethod
 
 `_getNativeMethod` is internal code. Just ignore it.
 
-### 5.7 - _validateParameterNames
+### 5.8 - _validateParameterNames
 
 `_validateParameterNames` is internal code. Just ignore it.
 
@@ -439,3 +447,28 @@ protected _getOnConflict(): string {
 ```typescript
 protected _getOnConflict(): string;
 ```
+
+## 11.0 - SQLiteParamAdapter
+
+Available since v0.2.0
+
+An adapter that iterates over query parameters to adapt the values
+into compatible SQLite Types.
+
+Queries by default will use this base implementation which handles the following data:
+
+| JS Type | SQLite Type |
+|---|---|
+| `null` | `null` |
+| `number` | `Integer` or `Real` |
+| `string` | `Text` |
+| `boolean` | `Integer` (`0` or `1`) |
+| `Date` | `Text` (ISO String) |
+| `Blob` | `Blob` |
+| `ArrayBuffer` | `Blob` |
+| `Int8Array` | `Blob` |
+| `Uint8Array` | `Blob` |
+
+Custom types can be added by extending this class and implementing the `_adapt` method.
+
+TBD: Document the remainder of SQLiteParamAdapter APIs.
