@@ -57,7 +57,7 @@ export abstract class Query<TParams, TResponse> {
     protected _validateParameterNames(params: SQLiteParams) {
         for (let key in params) {
             if (!(/^([a-zA-Z])+([a-zA-Z0-9_]+)/.test(key))) {
-                throw new Error("Query parameter name contained invalid character. Parameter name should only contain alphanumeric or underscore characters. The first charater must be an alphebetical letter.")
+                throw new Error(`Query parameter "${key}" contains an invalid character. Parameter name should only contain alphanumeric or underscore characters. The first charater must be an alphebetical letter.`);
             }
         }
     }
@@ -73,27 +73,11 @@ export abstract class Query<TParams, TResponse> {
     }
 
     /**
-     * Return true if this query should skip parameter type conversion and
-     * simply passthrough params as is. If it can be guarenteed that the source
-     * params are of acceptable SQLite types, then this can potentially give
-     * a performance boost, especially on bulk insert queries.
-     * 
-     * Defaults to false
-     */
-    protected _useParamsPassthrough(): boolean {
-        return false;
-    }
-
-    /**
      * Implement to translate unknown parameter types into valid SQL data types
      * @param params 
      * @returns 
      */
     protected async _getParameters(params: TParams): Promise<SQLiteParams> {
-        if (this._useParamsPassthrough()) {
-            return <SQLiteParams>params;
-        }
-
         if (!params) {
             return null;
         }

@@ -23,7 +23,7 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [5.1 - Constructor](#51---constructor)
   - [5.2 - getQuery](#52---getquery)
   - [5.3 - _getParameters](#52---getquery)
-  - [5.4 - _useParamsPassthrough](#)
+  - [5.4 - Reserved](#54---reserved)
   - [5.5 - execute](#55---execute)
   - [5.6 - Note on Data Types and Return Types](#56---note-on-data-types-and-return-types)
   - [5.7 - _getNativeMethod](#57---_getnativemethod)
@@ -263,19 +263,9 @@ class MyQuery extends Query<IMyQueryParams, void> {
 }
 ```
 
-### 5.4 - _useParamsPassthrough
+### 5.4 - Reserved
 
-Available since v0.2.0
-
-Can be overridden to return `true` if you can guarentee that the input query parameters will consists only of compatible SQLite types. By returning `true`, the query parameter adaption step will be skipped, which can yield significant performance gains on queries with large parameter structure, such as what is commonly seen with bulk upsert style queries.
-
-Defaults to `false`.
-
-##### Signature
-
-```typescript
-_useParamsPassthrough(): boolean;
-```
+Reserved
 
 ### 5.5 - execute
 

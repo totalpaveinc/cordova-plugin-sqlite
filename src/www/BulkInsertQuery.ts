@@ -1,6 +1,6 @@
 
 import {Query} from './Query';
-import {SQLiteType} from './SQLiteTypes';
+import {SQLiteParams, SQLiteType} from './SQLiteTypes';
 
 export type TBulkInsertParams = Array<Array<SQLiteType>>;
 
@@ -38,8 +38,8 @@ export abstract class BulkInsertQuery<TParams extends TBulkInsertParams> extends
         return 'bulkInsert';
     }
 
-    protected override _useParamsPassthrough(): boolean {
-        return true;
+    protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+        return params;
     }
 
     /**

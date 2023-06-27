@@ -30,7 +30,7 @@ export type SQLiteArray<TSQLiteType extends SQLiteType = SQLiteType> = TSQLiteTy
 /**
  * @since v0.2.0
  */
-export type SQLiteKWargs = Record<string, SQLiteType | SQLiteType[]>;
+export type SQLiteKWargs = Record<string, SQLiteType | SQLiteArray>;
 
 /**
  * @since v0.2.0

@@ -25,8 +25,8 @@ export class RawQuery<TParams extends SQLiteParams | void = SQLiteParams, TRespo
         this.$sql = sql;
     }
 
-    protected override _useParamsPassthrough(): boolean {
-        return true;
+    protected async _getParameters(params: TParams): Promise<SQLiteParams> {
+        return params ? params : null;
     }
 
     public override getQuery(): string {

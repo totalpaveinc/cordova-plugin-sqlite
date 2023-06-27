@@ -1,5 +1,16 @@
 
-import {SQLiteParams, SQLiteType, SQLiteValue} from './SQLiteTypes';
+import {
+    SQLiteArray,
+    SQLiteListArgs,
+    SQLiteParams,
+    SQLiteType,
+    SQLiteValue,
+    SQLiteBlob,
+    SQLiteDouble,
+    SQLiteInteger,
+    SQLiteNull,
+    SQLiteText
+} from './SQLiteTypes';
 import {SQLiteParamValueConverter} from './SQLiteParamValueConverter';
 
 /**
@@ -59,58 +70,58 @@ export class SQLiteParamAdapter {
         return out;
     }
 
-    protected async _adaptInt8TypedArray(v: Int8Array | Uint8Array): Promise<SQLiteType> {
+    protected async _adaptInt8TypedArray(v: Int8Array | Uint8Array): Promise<SQLiteBlob> {
         return await SQLiteParamValueConverter.int8OrUint8ToSQLiteBlob(v);
     }
 
-    protected async _adaptArrayBuffer(v: ArrayBuffer): Promise<SQLiteType> {
+    protected async _adaptArrayBuffer(v: ArrayBuffer): Promise<SQLiteBlob> {
         return await SQLiteParamValueConverter.arrayBufferToSQLiteBlob(v);
     }
 
-    protected async _adaptBlob(v: Blob): Promise<SQLiteType> {
+    protected async _adaptBlob(v: Blob): Promise<SQLiteBlob> {
         return await SQLiteParamValueConverter.blobToSQLiteBlob(v);
     }
 
-    protected _adaptDate(v: Date): SQLiteType {
+    protected _adaptDate(v: Date): SQLiteText {
         if (v.toString() === 'Invalid Date') {
             throw new Error('Invalid Date');
         }
         return SQLiteParamValueConverter.dateToText(v);
     }
 
-    protected _adaptBoolean(v: boolean): SQLiteType {
+    protected _adaptBoolean(v: boolean): SQLiteInteger {
         return SQLiteParamValueConverter.booleanToInteger(v);
     }
 
-    protected _adaptString(v: string): SQLiteType {
+    protected _adaptString(v: string): SQLiteText {
         return v;
     }
 
-    protected _adaptNumber(v: number): SQLiteType {
+    protected _adaptNumber(v: number): SQLiteDouble | SQLiteInteger {
         return v;
     }
 
-    protected _adaptNull(v: null): SQLiteType {
+    protected _adaptNull(v: null): SQLiteNull {
         return null;
     }
 
     protected async _adapt(v: unknown): Promise<SQLiteType> {
-        console.warn('Passing through an unknown type. This is potentially dangerous and an unsupported operation.\nTo support custom types, supply a SQLiteParamAdapter that has the knowledge to convert custom types into one of the SQLite Types.');
-        return <SQLiteType>v;
+        throw new Error('Hit an unknown type. This is an unsupported operation. To support custom types, extend SQLiteParamAdapter and implement the _adapt method.');
     }
 
-    public async processArray(input: unknown[]): Promise<SQLiteParams> {
+    public async processArray(input: unknown[][]): Promise<SQLiteListArgs> {
         // any cause we need to match the array structure...
-        let out: any = [];
+        let out: SQLiteListArgs = [];
 
         for (let i: number = 0; i < input.length; i++){ 
-            let v: unknown = input[i];
-            if (v instanceof Array) {
-                out.push(this.processArray(v));
+            let row: unknown[] = input[i];
+            let outRow: SQLiteArray = [];
+            for (let j: number = 0; j < row.length; j++) {
+                let v: unknown = row[j];
+                outRow.push(await this.$adapt(v));
             }
-            else {
-                out.push(await this.$adapt(v));
-            }
+            
+            out.push(outRow);
         }
 
         return out;
