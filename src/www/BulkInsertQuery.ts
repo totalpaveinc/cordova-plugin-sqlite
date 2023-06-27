@@ -1,6 +1,6 @@
 
 import {Query} from './Query';
-import {SQLiteParams, SQLiteType} from './SQLiteTypes';
+import {SQLiteType} from './SQLiteTypes';
 
 export type TBulkInsertParams = Array<Array<SQLiteType>>;
 
