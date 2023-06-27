@@ -40,6 +40,7 @@ This plugin does not aim to be a direct API to SQLite, instead it mimicks the Br
   - [10.1 - _getTable](#101---_gettable)
   - [10.2 - _getColumns](#102---_getcolumns)
   - [10.3 - _getOnConflict](#103---_getonconflict)
+- [11.0 - SQLiteParamAdapter](#110---sqliteparamadapter)
 
   
 
