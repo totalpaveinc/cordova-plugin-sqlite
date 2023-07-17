@@ -3,6 +3,7 @@
 #import "Database.h"
 #import "ErrorUtility.h"
 #import "./Error.h"
+#import <sqlite3.h>
 
 @implementation SQLite {
     NSMutableDictionary* $databases;
@@ -11,6 +12,38 @@
 - (void)pluginInitialize
 {
     self->$databases = [[NSMutableDictionary alloc] init];
+    
+    NSString* tempDir = NSTemporaryDirectory();
+    NSString* sqliteTempDir = [tempDir stringByAppendingPathComponent:@"sqlite"];
+    
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSError* error = nil;
+    
+    bool shouldSetTemp = false;
+    
+    if (![fileManager fileExistsAtPath:sqliteTempDir]) {
+        if (![fileManager createDirectoryAtPath:sqliteTempDir withIntermediateDirectories:YES attributes:nil error:&error]) {
+            NSLog(@"Failed to create sqlite temp directory. Large queries may fail fatally.\n%@", error);
+            shouldSetTemp = true;
+        }
+    }
+    else {
+        shouldSetTemp = true;
+    }
+    
+    // See https://www.sqlite.org/c3ref/temp_directory.html
+    // for special notes around sqlite3_temp_directory global variable usage
+    if (shouldSetTemp) {
+        const char* cstring = [sqliteTempDir UTF8String];
+        size_t length = strlen(cstring) + 1; // +1 for null terminator
+        char* sqliteStr = (char*)sqlite3_malloc((int)length);
+        strcpy(sqliteStr, cstring);
+        
+        sqlite3_temp_directory = sqliteStr;
+    }
+    else {
+        sqlite3_temp_directory = NULL;
+    }
 }
 
 -(void)open:(CDVInvokedUrlCommand *)command
