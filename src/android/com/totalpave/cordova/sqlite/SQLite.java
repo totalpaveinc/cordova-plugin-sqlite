@@ -25,6 +25,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
 
+import android.util.Log;
+
 import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.net.URI;
@@ -39,6 +41,17 @@ public class SQLite extends CordovaPlugin {
     @Override
     protected void pluginInitialize() {
         $databases = new HashMap<Long, Database>();
+
+        File cacheDir = this.cordova.getContext().getCacheDir();
+        File sqliteTempDir = new File(cacheDir, "sqlite3");
+        sqliteTempDir.mkdir();
+
+        try {
+            Sqlite.setTempDir(sqliteTempDir.getAbsolutePath());
+        }
+        catch(SqliteException ex) {
+            Log.e(LOG_TAG, "Unable to set temporary directory for SQLite. Large queries may fail fatally.", ex);
+        }
     }
 
     @Override
