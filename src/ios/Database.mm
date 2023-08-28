@@ -125,7 +125,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
             code:status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                ERROR_QUERY_KEY: sql
+                ERROR_DETAILS_KEY: @{
+                    ERROR_QUERY_KEY: sql
+                }
             }
         ];
         sqlite3_finalize(statement);
@@ -160,7 +162,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                 code:status
                 userInfo:@{
                     NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                    ERROR_QUERY_KEY: sql
+                    ERROR_DETAILS_KEY: @{
+                        ERROR_QUERY_KEY: sql
+                    }
                 }
             ];
             sqlite3_finalize(statement);
@@ -245,7 +249,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
             code:status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                ERROR_QUERY_KEY: chunkSql
+                ERROR_DETAILS_KEY: @{
+                    ERROR_QUERY_KEY: chunkSql
+                }
             }
         ];
         sqlite3_finalize(statement);
@@ -269,7 +275,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                     code:status
                     userInfo:@{
                         NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                        ERROR_QUERY_KEY: chunkSql
+                        ERROR_DETAILS_KEY: @{
+                            ERROR_QUERY_KEY: chunkSql
+                        }
                     }
                 ];
                 sqlite3_finalize(statement);
@@ -293,7 +301,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                 code:status
                 userInfo:@{
                     NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                    ERROR_QUERY_KEY: chunkSql
+                    ERROR_DETAILS_KEY: @{
+                        ERROR_QUERY_KEY: chunkSql
+                    }
                 }
             ];
             return;
@@ -342,7 +352,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                                 "Could not bind parameter \"" + std::string([key UTF8String]) + "\""
                             ).c_str()
                         ],
-                        ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                        ERROR_DETAILS_KEY: @{
+                            ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                        }
                     }
                 ];
                 return;
@@ -395,7 +407,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                             "Unhandled Complex Parameter Object for type \"" + std::string([objType UTF8String]) + "\""
                         ).c_str()
                     ],
-                    ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                    ERROR_DETAILS_KEY: @{
+                        ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                    }
                 }
             ];
             return;
@@ -411,7 +425,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                         "Unhandled Parameter Type for key \"" + std::string([parameterKeyForError UTF8String]) + "\""
                     ).c_str()
                 ],
-                ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                ERROR_DETAILS_KEY: @{
+                    ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                }
             }
         ];
         return;
@@ -423,7 +439,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
             code: status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
-                ERROR_QUERY_KEY: [NSString stringWithUTF8String:sqlite3_sql(statement)]
+                ERROR_DETAILS_KEY: @{
+                    ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                }
             }
         ];
         return;
@@ -467,7 +485,9 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                             "Unhandled Column Type \"" + std::to_string(columnType) + "\""
                         ).c_str()
                     ],
-                    ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                    ERROR_DETAILS_KEY: @{
+                        ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
+                    }
                 }
             ];
             return nil;

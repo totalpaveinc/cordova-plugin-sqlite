@@ -1,4 +1,6 @@
 
+#import <Foundation/Foundation.h>
+
 static NSString * const ERROR_DOMAIN = @"com.totalpave.cordova.sqlite.ErrorDomain";
 static NSString * const ERROR_DETAILS_KEY = @"details";
 static NSString * const ERROR_QUERY_KEY = @"query";
