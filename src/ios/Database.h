@@ -1,5 +1,6 @@
 
 #import "./Error.h"
+#import <Foundation/Foundation.h>
 
 @interface Database : NSObject
     - (id _Nonnull) initWithPath:(NSURL*_Nonnull) path openFlags:(int) openFlags busyTimeout:(int) busyTimeout error:(NSError*_Nullable*_Nonnull) error;
