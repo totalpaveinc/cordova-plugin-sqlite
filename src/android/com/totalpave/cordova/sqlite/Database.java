@@ -267,8 +267,8 @@ public class Database {
                 else if (value instanceof String) {
                     Sqlite.bindString(statement, key, (String)value);
                 }
-                else if (value instanceof Integer) {
-                    Sqlite.bindInt(statement, key, (Integer)value);
+                else if (value instanceof Integer || value instanceof Long) {
+                    Sqlite.bindInt(statement, key, (Long)value);
                 }
                 else if (value instanceof Double) {
                     Sqlite.bindDouble(statement, key, (Double)value);
@@ -314,8 +314,8 @@ public class Database {
                 else if (value instanceof String) {
                     Sqlite.bindStringWithIndex(statement, index, (String)value);
                 }
-                else if (value instanceof Integer) {
-                    Sqlite.bindIntWithIndex(statement, index, (Integer)value);
+                else if (value instanceof Integer || value instanceof Long) {
+                    Sqlite.bindIntWithIndex(statement, index, (Long)value);
                 }
                 else if (value instanceof Double) {
                     Sqlite.bindDoubleWithIndex(statement, index, (Double)value);
