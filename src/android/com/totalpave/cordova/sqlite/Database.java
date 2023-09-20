@@ -147,7 +147,7 @@ public class Database {
         int rows = vars.length();
         // It is invalid to have a variable number of columns, so assume the column count is the same across all rows is okay.
         int columns = vars.getJSONArray(0).length();
-        
+
         int chunkSize = (int)Math.floor((double)MAX_VARIABLE_COUNT / (double)columns);
         int iterationsRequired = (int)Math.ceil((double)rows / (double)chunkSize);
         int lastIterationLength = rows - (chunkSize * (iterationsRequired - 1));
@@ -267,7 +267,10 @@ public class Database {
                 else if (value instanceof String) {
                     Sqlite.bindString(statement, key, (String)value);
                 }
-                else if (value instanceof Integer || value instanceof Long) {
+                else if (value instanceof Integer) {
+                    Sqlite.bindInt(statement, key, ((Integer)value).longValue());
+                }
+                else if (value instanceof Long) {
                     Sqlite.bindInt(statement, key, (Long)value);
                 }
                 else if (value instanceof Double) {
@@ -314,7 +317,10 @@ public class Database {
                 else if (value instanceof String) {
                     Sqlite.bindStringWithIndex(statement, index, (String)value);
                 }
-                else if (value instanceof Integer || value instanceof Long) {
+                else if (value instanceof Integer) {
+                    Sqlite.bindIntWithIndex(statement, index, ((Integer)value).longValue());
+                }
+                else if (value instanceof Long) {
                     Sqlite.bindIntWithIndex(statement, index, (Long)value);
                 }
                 else if (value instanceof Double) {
