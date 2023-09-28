@@ -1,7 +1,6 @@
 
 #import "Database.h"
-#import <sqlite3.h>
-#import <sqlite3/tp/sqlite/utilities.h>
+#import <sqlite/sqlite.h>
 #import <cmath>
 #import <vector>
 
@@ -24,10 +23,10 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
         [fs createDirectoryAtURL:filePath withIntermediateDirectories:true attributes:nil error:&fsError];
         if (fsError) {
             *error = [[NSError alloc]
-                initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
                 code:SQLITE_CANTOPEN
                 userInfo:@{
-                    NSLocalizedDescriptionKey: [NSString stringWithUTF8String: std::string("Could not make directories for path (" + std::string(cxxPath) + ")").c_str()],
+                    NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Could not make directories for path (%s)", cxxPath],
                     NSUnderlyingErrorKey: fsError
                 }
             ];
@@ -38,14 +37,10 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
     int status = sqlite3_open_v2(cxxPath, &(self->$db), openFlags, nullptr);
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
-            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
             code:status
             userInfo:@{
-                NSLocalizedDescriptionKey: [NSString
-                    stringWithUTF8String:(
-                        std::string(sqlite3_errstr(status)) + " (" + std::string(cxxPath) + ")"
-                    ).c_str()
-                ]
+                NSLocalizedDescriptionKey: [NSString stringWithFormat:@"%s (%s)", sqlite3_errstr(status), cxxPath]
             }
         ];
         return self;
@@ -121,7 +116,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
     int status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
-            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
             code:status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -158,7 +153,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
         }
         else {
             *error = [[NSError alloc]
-                initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
                 code:status
                 userInfo:@{
                     NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -245,7 +240,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
     status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
-            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
             code:status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -271,7 +266,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
             status = sqlite3_prepare_v2(self->$db, cxxSql, (int)strlen(cxxSql), &statement, 0);
             if (status != SQLITE_OK) {
                 *error = [[NSError alloc]
-                    initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                    initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
                     code:status
                     userInfo:@{
                         NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -297,7 +292,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
         status = sqlite3_step(statement);
         if (status != SQLITE_DONE) {
             *error = [[NSError alloc]
-                initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+                initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
                 code:status
                 userInfo:@{
                     NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -341,17 +336,13 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
     if (![params isEqual:[NSNull null]]) {
         for (NSString* key in params) {
             id value = [params valueForKey:key];
-            int index = TP::sqlite::lookupVariableIndex(statement, [key UTF8String]);
+            int index = [TPISQLiteUtilities lookupVariableIndex:statement var:key];
             if (index == 0) {
                 *error = [[NSError alloc]
-                    initWithDomain:[NSString stringWithUTF8String:TP::sqlite::TOTALPAVE_SQLITE_ERROR_DOMAIN]
-                    code:TP::sqlite::ERROR_CODE_BIND_PARAMETER_ERROR
+                    initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
+                    code: TPISQLite_ERROR_CODE_BIND_PARAMETER_ERROR
                     userInfo:@{
-                        NSLocalizedDescriptionKey: [NSString
-                            stringWithUTF8String:(
-                                "Could not bind parameter \"" + std::string([key UTF8String]) + "\""
-                            ).c_str()
-                        ],
+                        NSLocalizedDescriptionKey: [NSString stringWithFormat: @"Could not bind parameter \"%@\"", key],
                         ERROR_DETAILS_KEY: @{
                             ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
                         }
@@ -402,11 +393,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                 initWithDomain:ERROR_DOMAIN
                 code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
                 userInfo:@{
-                    NSLocalizedDescriptionKey: [NSString
-                        stringWithUTF8String:(
-                            "Unhandled Complex Parameter Object for type \"" + std::string([objType UTF8String]) + "\""
-                        ).c_str()
-                    ],
+                    NSLocalizedDescriptionKey: [NSString stringWithFormat: @"Unhandled Complex Parameter Object for type \"%@\"", objType],
                     ERROR_DETAILS_KEY: @{
                         ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
                     }
@@ -420,11 +407,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
             initWithDomain:ERROR_DOMAIN
             code:ERROR_CODE_UNHANDLED_PARAMETER_TYPE
             userInfo:@{
-                NSLocalizedDescriptionKey: [NSString
-                    stringWithUTF8String:(
-                        "Unhandled Parameter Type for key \"" + std::string([parameterKeyForError UTF8String]) + "\""
-                    ).c_str()
-                ],
+                NSLocalizedDescriptionKey: [NSString stringWithFormat: @"Unhandled Parameter Type for key \"%@\"", parameterKeyForError],
                 ERROR_DETAILS_KEY: @{
                     ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
                 }
@@ -435,7 +418,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
 
     if (status != SQLITE_OK) {
         *error = [[NSError alloc]
-            initWithDomain:[NSString stringWithUTF8String:TP::sqlite::SQLITE_ERROR_DOMAIN]
+            initWithDomain: [TPISQLite_SQLITE_ERROR_DOMAIN mutableCopy]
             code: status
             userInfo:@{
                 NSLocalizedDescriptionKey: [NSString stringWithUTF8String:sqlite3_errstr(status)],
@@ -480,11 +463,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
                 initWithDomain:ERROR_DOMAIN
                 code:ERROR_CODE_UNSUPPORTED_COLUMN_TYPE
                 userInfo:@{
-                    NSLocalizedDescriptionKey: [NSString
-                        stringWithUTF8String:(
-                            "Unhandled Column Type \"" + std::to_string(columnType) + "\""
-                        ).c_str()
-                    ],
+                    NSLocalizedDescriptionKey: [NSString stringWithFormat: @"Unhandled Column Type \"%d\"", columnType],
                     ERROR_DETAILS_KEY: @{
                         ERROR_QUERY_KEY: [NSString stringWithUTF8String: sqlite3_sql(statement)]
                     }

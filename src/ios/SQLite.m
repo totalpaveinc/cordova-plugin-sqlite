@@ -3,7 +3,7 @@
 #import "Database.h"
 #import "ErrorUtility.h"
 #import "./Error.h"
-#import <sqlite3.h>
+#import <sqlite/sqlite.h>
 
 @implementation SQLite {
     NSMutableDictionary* $databases;
