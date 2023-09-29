@@ -371,7 +371,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
     }
     else if ([value isKindOfClass:[NSNumber class]]) {
         if (fmod([value doubleValue], 1) == 0.0) {
-            status = sqlite3_bind_int(statement, index, [value intValue]);
+            status = sqlite3_bind_int64(statement, index, [value longValue]);
         }
         else {
             status = sqlite3_bind_double(statement, index, [value doubleValue]);
@@ -439,7 +439,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
         NSString* columnName = [NSString stringWithUTF8String: sqlite3_column_name(statement, i)];
         id value;
         if (columnType == SQLITE_INTEGER) {
-            value = [NSNumber numberWithInt: sqlite3_column_int(statement, i)];
+            value = [NSNumber numberWithLong: sqlite3_column_int64(statement, i)];
         }
         else if (columnType == SQLITE_FLOAT) {
             value = [NSNumber numberWithDouble: sqlite3_column_double(statement, i)];
