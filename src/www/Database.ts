@@ -17,15 +17,15 @@
 import {IDatabaseHandle} from './IDatabaseHandle';
 
 export class Database implements IDatabaseHandle {
-    private $handle: number;
+    private $handle: string;
     private $closed: boolean;
 
-    public constructor(handle: number) {
+    public constructor(handle: string) {
         this.$handle = handle;
         this.$closed = false;
     }
 
-    public getHandle(): number {
+    public getHandle(): string {
         return this.$handle;
     }
 

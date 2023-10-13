@@ -49,10 +49,10 @@ export class SQLite {
             throw new Error("Database path must start with file://");
         }
 
-        let dbHandle: number = (
+        let dbHandle: string = (
             await this.$exec<
                 [string, number, SQLiteInteger],
-                {dbHandle: number}
+                {dbHandle: string}
             >(
                 'open',
                 [
@@ -66,7 +66,7 @@ export class SQLite {
     }
 
     public static async close(db: Database): Promise<void> {
-        await this.$exec<[{dbHandle: number}], void>('close', [ { dbHandle: db.getHandle() } ]);
+        await this.$exec<[{dbHandle: string}], void>('close', [ { dbHandle: db.getHandle() } ]);
         db.__close();
     }
 };

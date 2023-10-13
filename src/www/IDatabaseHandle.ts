@@ -15,5 +15,5 @@
 */
 
 export interface IDatabaseHandle {
-    getHandle(): number;
+    getHandle(): string;
 }
