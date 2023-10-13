@@ -362,7 +362,7 @@ const NSInteger MAX_VARIABLE_COUNT = 32666;
 - (void) $bindParam:(sqlite3_stmt*_Nonnull) statement index:(int) index value:(id _Nullable) value parameterKeyForError:(NSString*_Nonnull) parameterKeyForError error:(NSError*_Nullable*_Nonnull) error {
     int status;
 
-    if ([value isEqual:[NSNull null]]) {
+    if ([value isEqual:[NSNull null]] || value == nil) {
         status = sqlite3_bind_null(statement, index);
     }
     else if ([value isKindOfClass:[NSString class]]) {

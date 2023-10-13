@@ -87,7 +87,7 @@
     NSDictionary* params = [command.arguments objectAtIndex:2];
 
     Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
-    if ([db isEqual:[NSNull null]]) {
+    if (db == nil) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
                 resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Database Not Found. Did you open your database before calling query?"
@@ -123,7 +123,7 @@
 -(void)close:(CDVInvokedUrlCommand *)command
 {
     Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
-    if (![db isEqual:[NSNull null]]) {
+    if (db != nil) {
         [db close];
         [self->$databases removeObjectForKey:[db getHandle]];
     }
@@ -139,7 +139,7 @@
     NSArray* params = [command.arguments objectAtIndex:2];
     Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
     
-    if ([db isEqual:[NSNull null]]) {
+    if (db == nil) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
                 resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Database Not Found. Did you open your database before calling bulkInsert?"
