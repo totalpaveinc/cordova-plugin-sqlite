@@ -9,8 +9,7 @@
     NSMutableDictionary* $databases;
 }
 
-- (void)pluginInitialize
-{
+- (void) pluginInitialize {
     self->$databases = [[NSMutableDictionary alloc] init];
     
     NSString* tempDir = NSTemporaryDirectory();
@@ -46,8 +45,7 @@
     }
 }
 
--(void)open:(CDVInvokedUrlCommand *)command
-{
+- (void) open:(CDVInvokedUrlCommand*) command {
     [self.commandDelegate runInBackground:^{
         NSError* error;
         Database *db = [[Database alloc]
@@ -68,7 +66,7 @@
             NSNumber* handle = [db getHandle];
             [self->$databases setObject:db forKey:handle];
             NSMutableDictionary* response = [[NSMutableDictionary alloc] init];
-            [response setObject:handle forKey:@"dbHandle"];
+            [response setObject: [handle stringValue] forKey:@"dbHandle"];
             
             [self.commandDelegate
                 sendPluginResult:[CDVPluginResult
@@ -81,12 +79,25 @@
     }];
 }
 
--(void)query:(CDVInvokedUrlCommand *)command
-{
+- (void) query:(CDVInvokedUrlCommand*) command {
     NSString* sql = [command.arguments objectAtIndex:1];
     NSDictionary* params = [command.arguments objectAtIndex:2];
+    
+    NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
+    NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
+    NSNumber* handle = [numberFormatter numberFromString: handleStr];
+    
+    if (handle == nil) {
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Malformed handle"
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
 
-    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
+    Database* db = [self->$databases objectForKey: handle];
     if (db == nil) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
@@ -120,9 +131,22 @@
     }
 }
 
--(void)close:(CDVInvokedUrlCommand *)command
-{
-    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
+- (void) close:(CDVInvokedUrlCommand*) command {
+    NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
+    NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
+    NSNumber* handle = [numberFormatter numberFromString: handleStr];
+    
+    if (handle == nil) {
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Malformed handle"
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+    
+    Database* db = [self->$databases objectForKey: handle];
     if (db != nil) {
         [db close];
         [self->$databases removeObjectForKey:[db getHandle]];
@@ -133,11 +157,24 @@
     ];
 }
 
--(void)bulkInsert:(CDVInvokedUrlCommand *)command
-{
+- (void) bulkInsert:(CDVInvokedUrlCommand*) command {
     NSString* sql = [command.arguments objectAtIndex:1];
     NSArray* params = [command.arguments objectAtIndex:2];
-    Database* db = [self->$databases objectForKey:[[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"]];
+    NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
+    NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
+    NSNumber* handle = [numberFormatter numberFromString: handleStr];
+    
+    if (handle == nil) {
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Malformed handle"
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+    
+    Database* db = [self->$databases objectForKey:handle];
     
     if (db == nil) {
         [self.commandDelegate
