@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="@totalpave/cordova-plugin-sqlite" version="0.1.0">
+<plugin
+  xmlns="http://apache.org/cordova/ns/plugins/1.0"
+  id="@totalpave/cordova-plugin-sqlite"
+  version="0.4.1"
+>
   <name>SQLite 3.39.2</name>
   <description>Cordova plugin to interface with SQLite databases.</description>
   <author>Total Pave Inc.</author>
@@ -20,7 +24,7 @@
   </js-module> -->
 
   <platform name="android">
-    <framework src="totalpave:sqlite3:0.1.1" />
+    <framework src="totalpave:sqlite3:0.1.6" />
     <config-file target="config.xml" parent="/*">
       <feature name="TPSQLite">
         <param name="android-package" value="com.totalpave.cordova.sqlite.SQLite" />
