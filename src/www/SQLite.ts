@@ -69,4 +69,9 @@ export class SQLite {
         await this.$exec<[{dbHandle: string}], void>('close', [ { dbHandle: db.getHandle() } ]);
         db.__close();
     }
+
+    // Incomplete API
+    // public static async getLogs(): Promise<Array<String>> {
+    //     return await this.$exec('getLogs', []);
+    // }
 };

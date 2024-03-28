@@ -4,14 +4,17 @@
 #import "ErrorUtility.h"
 #import "./Error.h"
 #import <sqlite/sqlite.h>
+#import "./Logger.h"
 
 @implementation SQLite {
     NSMutableDictionary* $databases;
+    Logger* $connectionLog;
 }
 
 - (void) pluginInitialize {
     self->$databases = [[NSMutableDictionary alloc] init];
-    
+    self->$connectionLog = [[Logger alloc] initWithSubSystem:SUBSYSTEM category:CONNECTION_LOG_CATEGORY];
+
     NSString* tempDir = NSTemporaryDirectory();
     NSString* sqliteTempDir = [tempDir stringByAppendingPathComponent:@"sqlite"];
     
@@ -65,6 +68,7 @@
         else {
             NSNumber* handle = [db getHandle];
             [self->$databases setObject:db forKey:handle];
+            [self->$connectionLog log:@"Connection Opened | Handle %@", [handle stringValue]];
             NSMutableDictionary* response = [[NSMutableDictionary alloc] init];
             [response setObject: [handle stringValue] forKey:@"dbHandle"];
             
@@ -86,7 +90,8 @@
     NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
     NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
     NSNumber* handle = [numberFormatter numberFromString: handleStr];
-    
+    [self->$connectionLog log:@"Connection Opened | Handle %@ | SQL (50 Chars) - %@", [handle stringValue], [sql substringWithRange:NSMakeRange(0, 50 < sql.length ? 50 : sql.length)]];
+
     if (handle == nil) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
@@ -151,6 +156,7 @@
         [db close];
         [self->$databases removeObjectForKey:[db getHandle]];
     }
+    [self->$connectionLog log:@"Connection Opened | Handle %@", [handle stringValue]];
     [self.commandDelegate
         sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK]
         callbackId:command.callbackId
@@ -163,7 +169,8 @@
     NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
     NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
     NSNumber* handle = [numberFormatter numberFromString: handleStr];
-    
+    [self->$connectionLog log:@"Connection Opened | Handle %@ | SQL (50 Chars) - %@", [handle stringValue], [sql substringWithRange:NSMakeRange(0, 50 < sql.length ? 50 : sql.length)]];
+
     if (handle == nil) {
         [self.commandDelegate
             sendPluginResult:[CDVPluginResult
@@ -207,5 +214,23 @@
         }];
     }
 }
+
+// - (void) getLogs:(CDVInvokedUrlCommand*) command {
+//     NSError* error = nil;
+//     NSArray* logs = [Logger getLogs:&error];
+//     if (error) {
+//         [self.commandDelegate
+//             sendPluginResult:[CDVPluginResult
+//                 resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+//             ] callbackId:command.callbackId
+//         ];
+//         return;
+//     }
+//     [self.commandDelegate
+//         sendPluginResult:[CDVPluginResult
+//             resultWithStatus:CDVCommandStatus_OK messageAsArray: logs
+//         ] callbackId:command.callbackId
+//     ];
+// }
 
 @end
