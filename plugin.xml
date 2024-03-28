@@ -51,5 +51,7 @@
     <header-file src="src/ios/Error.h" target-dir="totalpave/sqlite" />
     <source-file src="src/ios/ErrorUtility.m" target-dir="totalpave/sqlite" />
     <header-file src="src/ios/ErrorUtility.h" target-dir="totalpave/sqlite" />
+    <source-file src="src/ios/Logger.m" target-dir="totalpave/sqlite" />
+    <header-file src="src/ios/Logger.h" target-dir="totalpave/sqlite" />
   </platform>
 </plugin>
