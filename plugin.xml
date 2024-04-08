@@ -24,7 +24,7 @@
   </js-module> -->
 
   <platform name="android">
-    <framework src="totalpave:sqlite3:0.1.7" />
+    <framework src="totalpave:sqlite3:0.1.8" />
     <config-file target="config.xml" parent="/*">
       <feature name="TPSQLite">
         <param name="android-package" value="com.totalpave.cordova.sqlite.SQLite" />
