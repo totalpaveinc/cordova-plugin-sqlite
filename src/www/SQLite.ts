@@ -33,6 +33,8 @@ enum OpenFlags {
 
 export const SERVICE_NAME: string = "TPSQLite";
 
+const DEFAULT_BUSY_TIMEOUT: number = 60000; // 60 seconds
+
 export class SQLite {
     private static async $exec<TArgs extends Array<any> = Array<any>, TResponse = any>(method: string, vargs: TArgs): Promise<TResponse> {
         return new Promise<TResponse>((resolve, reject) => {
@@ -44,7 +46,7 @@ export class SQLite {
         });
     }
 
-    public static async open(path: string, writeAccess: boolean, busyTimeout: SQLiteInteger = 10000): Promise<Database> {
+    public static async open(path: string, writeAccess: boolean, busyTimeout: SQLiteInteger = DEFAULT_BUSY_TIMEOUT): Promise<Database> {
         if (path.indexOf("file://") !== 0) {
             throw new Error("Database path must start with file://");
         }
