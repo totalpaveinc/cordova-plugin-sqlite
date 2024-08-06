@@ -2,7 +2,7 @@
 <plugin
   xmlns="http://apache.org/cordova/ns/plugins/1.0"
   id="@totalpave/cordova-plugin-sqlite"
-  version="0.4.4"
+  version="0.5.0"
 >
   <name>SQLite 3.39.2</name>
   <description>Cordova plugin to interface with SQLite databases.</description>
