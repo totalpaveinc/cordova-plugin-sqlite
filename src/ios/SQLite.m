@@ -90,7 +90,7 @@
     NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
     NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
     NSNumber* handle = [numberFormatter numberFromString: handleStr];
-    [self->$connectionLog log:@"Connection Opened | Handle %@ | SQL (50 Chars) - %@", [handle stringValue], [sql substringWithRange:NSMakeRange(0, 50 < sql.length ? 50 : sql.length)]];
+    [self->$connectionLog log:@"Connection Queried | Handle %@ | SQL - %@", [handle stringValue], sql];
 
     if (handle == nil) {
         [self.commandDelegate
@@ -156,7 +156,7 @@
         [db close];
         [self->$databases removeObjectForKey:[db getHandle]];
     }
-    [self->$connectionLog log:@"Connection Opened | Handle %@", [handle stringValue]];
+    [self->$connectionLog log:@"Connection Closed | Handle %@", [handle stringValue]];
     [self.commandDelegate
         sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK]
         callbackId:command.callbackId
@@ -169,7 +169,7 @@
     NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
     NSString* handleStr = [[command.arguments objectAtIndex:0] objectForKey:@"dbHandle"];
     NSNumber* handle = [numberFormatter numberFromString: handleStr];
-    [self->$connectionLog log:@"Connection Opened | Handle %@ | SQL (50 Chars) - %@", [handle stringValue], [sql substringWithRange:NSMakeRange(0, 50 < sql.length ? 50 : sql.length)]];
+    [self->$connectionLog log:@"Connection Bulk Inserted | Handle %@ | SQL - %@", [handle stringValue], sql];
 
     if (handle == nil) {
         [self.commandDelegate
