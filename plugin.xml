@@ -15,16 +15,9 @@
     <clobbers target="totalpave.sqlite" />
   </js-module>
 
-  <!-- <js-module src="www/Database.js" name="Database">
-    <clobbers target="totalpave.sqlite.Database" />
-  </js-module>
-
-  <js-module src="www/Query.js" name="Query">
-    <clobbers target="totalpave.sqlite.Query" />
-  </js-module> -->
+  <dependency id="@totalpave/cordova-plugin-libsqlite" version="0.2.x" />
 
   <platform name="android">
-    <framework src="totalpave:sqlite3:0.1.8" />
     <config-file target="config.xml" parent="/*">
       <feature name="TPSQLite">
         <param name="android-package" value="com.totalpave.cordova.sqlite.SQLite" />
@@ -37,7 +30,6 @@
   </platform>
 
   <platform name="ios">
-    <dependency id="@totalpave/cordova-plugin-libsqlite" version="0.1.x" />
     <config-file target="config.xml" parent="/*">
       <feature name="TPSQLite">
         <param name="ios-package" value="SQLite" />
