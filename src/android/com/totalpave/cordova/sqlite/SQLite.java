@@ -26,11 +26,16 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 import android.util.Log;
+import android.system.Os;
+import android.system.OsConstants;
 
-import java.security.InvalidParameterException;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.net.URI;
 import java.io.File;
+import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.lang.NumberFormatException;
 
 public class SQLite extends CordovaPlugin {
@@ -52,6 +57,26 @@ public class SQLite extends CordovaPlugin {
         catch(SqliteException ex) {
             Log.e(LOG_TAG, "Unable to set temporary directory for SQLite. Large queries may fail fatally.", ex);
         }
+    }
+
+    /**
+     * Gets the ideal buffer size for processing streams of data.
+     *
+     * @return The page size of the device.
+     */
+    private int getPageSize() {
+        // Get the page size of the device. Most devices will be 4096 (4kb)
+        // Newer devices may be 16kb
+        long ps = Os.sysconf(OsConstants._SC_PAGE_SIZE);
+
+        // sysconf returns a long because it's a general purpose API
+        // the expected value of a page size should not exceed an int,
+        // but we guard it here to avoid integer overflow just in case
+        if (ps > Short.MAX_VALUE) {
+            ps = 4096;
+        }
+
+        return (int) ps;
     }
 
     @Override
@@ -145,6 +170,74 @@ public class SQLite extends CordovaPlugin {
 
             db.close();
             $databases.remove(dbHandle);
+            callback.success();
+            return true;
+        }
+        else if (action.equals("backup")) {
+            String path = args.getString(0);
+            String backupPath = args.getString(1);
+
+            File source = $parsePath(path);
+            File destination = $parsePath(backupPath);
+            destination.delete(); // returns false if fails but we don't care.
+
+            FileInputStream in;
+            FileOutputStream out;
+
+            try {
+                in = new FileInputStream(source);
+                out = new FileOutputStream(destination);
+            }
+            catch (FileNotFoundException ex) {
+                callback.error(new SqliteException(Error.DOMAIN, ex.getMessage(), Error.IO_ERROR).toDictionary());
+                return true;
+            }
+            try {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[this.getPageSize() * 2];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            }
+            catch (IOException ex) {
+                try {
+                    out.close();
+                    in.close();
+                }
+                catch (IOException iex) {
+                    Log.e(LOG_TAG, iex.getMessage());
+                }
+                callback.error(new SqliteException(Error.DOMAIN, ex.getMessage(), Error.IO_ERROR).toDictionary());
+                return true;
+            }
+
+            callback.success();
+            return true;
+        }
+        else if (action.equals("restoreBackup")) {
+            String path = args.getString(0);
+            String backupPath = args.getString(1);
+
+            File tempdestination = $parsePath(path + "-temp");
+            File source = $parsePath(backupPath);
+            File destination = $parsePath(path);
+
+            // Store existing database in case of failure.
+            if (!destination.renameTo(tempdestination)) {
+                callback.error(new SqliteException(Error.DOMAIN, "Could not rename existing database.", Error.IO_ERROR).toDictionary());
+                return true;
+            }
+
+            // Restore db
+            if (!source.renameTo(destination)) {
+                callback.error(new SqliteException(Error.DOMAIN, "Could not restore database.", Error.IO_ERROR).toDictionary());
+                return true;
+            }
+
+            tempdestination.delete();
+            source.delete();
+
             callback.success();
             return true;
         }

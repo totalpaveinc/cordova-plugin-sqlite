@@ -72,6 +72,29 @@ export class SQLite {
         db.__close();
     }
 
+    /**
+     * 
+     * Note, this API is unsafe to use while the db is being actively used.
+     * 
+     * @param path 
+     * @param backupName 
+     */
+    public static async backup(path: string, backupPath: string): Promise<void> {
+        await this.$exec<[path: string, backupPath: string], void>('backup', [ path, backupPath ]);
+    }
+
+    /**
+     * 
+     * Note, this API is unsafe to use while the db is being actively used.
+     * Close all active databases prior to restoring and re-open them after restoring.
+     * 
+     * @param path 
+     * @param backupName 
+     */
+    public static async restoreBackup(path: string, backupPath: string): Promise<void> {
+        await this.$exec<[path: string, backupPath: string], void>('restoreBackup', [ path, backupPath ]);
+    }
+
     // Incomplete API
     // public static async getLogs(): Promise<Array<String>> {
     //     return await this.$exec('getLogs', []);

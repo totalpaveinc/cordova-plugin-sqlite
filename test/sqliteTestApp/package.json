@@ -15,11 +15,11 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@totalpave/cordova-plugin-libcxx": "25.0.8775105",
-    "@totalpave/cordova-plugin-libsqlite": "^0.2.2",
+    "@totalpave/cordova-plugin-libsqlite": "0.2.2",
     "@totalpave/cordova-plugin-sqlite": "file:../../totalpave-cordova-plugin-sqlite-0.5.3.tgz",
     "@types/cordova": "^11.0.0",
-    "cordova-android": "11.0.0",
-    "cordova-ios": "file:../../../cordova-ios",
+    "cordova-android": "13.0.0",
+    "cordova-ios": "7.1.1",
     "cordova-plugin-file": "^7.0.0",
     "eslint": "^8.57.1",
     "ts-loader": "^9.4.3",
@@ -36,8 +36,8 @@
       "@totalpave/cordova-plugin-sqlite": {}
     },
     "platforms": [
-      "ios",
-      "android"
+      "android",
+      "ios"
     ]
   }
 }

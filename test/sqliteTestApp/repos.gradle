@@ -1,0 +1,9 @@
+// Custom Repos
+
+ext.repos = {
+    google()
+    mavenCentral()
+    maven {
+        url = uri("https://archiva.totalpave.com/repository/public")
+    }
+}

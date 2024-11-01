@@ -215,6 +215,178 @@
     }
 }
 
+- (void) backup:(CDVInvokedUrlCommand*) command {
+    NSError* error;
+    
+    NSString* path = [[NSURL URLWithString: [command.arguments objectAtIndex:0]] path];
+    NSString* backupPath = [[NSURL URLWithString: [command.arguments objectAtIndex:1]] path];
+
+    NSFileManager* fs = [[NSFileManager alloc] init];
+
+    if ([fs fileExistsAtPath: backupPath] && ![fs removeItemAtPath: backupPath error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not remove old backup file.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+    
+    if (![fs copyItemAtPath: path toPath: backupPath error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not backup database.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+   }
+
+    [self.commandDelegate
+        sendPluginResult:[CDVPluginResult
+            resultWithStatus:CDVCommandStatus_OK
+        ]
+        callbackId:command.callbackId
+    ];
+}
+
+- (void) restoreBackup:(CDVInvokedUrlCommand*) command {
+    NSError* error;
+    
+    NSString* path = [[NSURL URLWithString: [command.arguments objectAtIndex:0]] path];
+    NSString* backupPath = [[NSURL URLWithString: [command.arguments objectAtIndex:1]] path];
+    NSString* tempPath = [NSString stringWithFormat:@"%@%@", backupPath, @"-temp"];
+    NSFileManager* fs = [[NSFileManager alloc] init];
+
+    // Clear file at tempURL if it exists
+    if ([fs fileExistsAtPath: tempPath] && ![fs removeItemAtPath: tempPath error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not clean old temp files.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+
+    // Copy path db to tempPath
+    if (![fs copyItemAtPath: path toPath: tempPath error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not store temp copy of database.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+   }
+
+    // Remove current database to make room for the restore.
+    if ([fs fileExistsAtPath: path] && ![fs removeItemAtPath: path error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not remove current database file.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+
+    // Restore Database
+    if (![fs copyItemAtPath: backupPath toPath: path error: &error]) {
+        NSString* userErr = @"Could not restore database.";
+        NSError* fallbackErr;
+        // Restore old db
+        if (![fs copyItemAtPath: tempPath toPath: path error: &fallbackErr]) {
+            // I dunno what to do here considering we are already in an error case.
+            // I mean everything is royally screwed now.
+            [userErr stringByAppendingString: @" Also failed to recover from error state."];
+        }
+
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not restore database.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+   }
+
+    // Clear file at tempURL if it exists
+    if ([fs fileExistsAtPath: tempPath] && ![fs removeItemAtPath: tempPath error: &error]) {
+        error = [[NSError alloc]
+            initWithDomain: ERROR_DOMAIN
+            code: ERROR_CODE_IO
+            userInfo:@{
+                NSLocalizedDescriptionKey: @"Could not clean old temp files.",
+                NSUnderlyingErrorKey: error
+            }
+        ];
+        [self.commandDelegate
+            sendPluginResult:[CDVPluginResult
+                resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[ErrorUtility errorToDictionary:error]
+            ]
+            callbackId:command.callbackId
+        ];
+        return;
+    }
+
+    [self.commandDelegate
+        sendPluginResult:[CDVPluginResult
+            resultWithStatus:CDVCommandStatus_OK
+        ]
+        callbackId:command.callbackId
+    ];
+}
+
 // - (void) getLogs:(CDVInvokedUrlCommand*) command {
 //     NSError* error = nil;
 //     NSArray* logs = [Logger getLogs:&error];

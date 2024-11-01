@@ -6,5 +6,10 @@
     <content src="index.html" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <preference name="deployment-target" value="15.0" />
     <preference name="android-minSdkVersion" value="24" />
+
+    <platform name="android">
+        <resource-file src="repos.gradle" target="app/repositories.gradle" />
+    </platform>
 </widget>
