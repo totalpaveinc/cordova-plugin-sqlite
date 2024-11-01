@@ -6,7 +6,7 @@ rm -f ./*.tgz
 npm run build
 npm pack
 
-ANDROID_VERSION=11
+ANDROID_VERSION=13
 
 plugin=`ls *.tgz`
 

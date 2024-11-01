@@ -9,4 +9,5 @@ public class Error {
     public static final int UNHANDLED_PARAMETER_TYPE = 2;
     public static final int UNSUPPORTED_COLUMN_TYPE = 3;
     public static final int DATABASE_NOT_FOUND = 4;
+    public static final int IO_ERROR = 4;
 }

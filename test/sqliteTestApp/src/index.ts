@@ -144,7 +144,7 @@ async function runTest(number: number, description: string, testFn: Function) {
         console.log(`Test ${number} passes`);
     }
     catch (ex) {
-        console.error(`Test ${number} failed |`, ex);
+        console.error(`Test ${number} failed |`, ex.message);
     }
 }
 
@@ -410,6 +410,46 @@ function onDeviceReady() {
         for (let i = 0; i < results.length; i++) {
             console.log('RESULT', i, results[i]);
         }
+
+        await runTest(15, 'backup db works', async() => {
+            let path = cordova.file.dataDirectory + 'test.db';
+            let backupPath = cordova.file.dataDirectory + 'test-backup.db'
+            await SQLite.backup(path, backupPath);
+
+            let backupdb = await SQLite.open(backupPath, true);
+            let dbdata = await new RawQuery<void>('SELECT * FROM test ORDER BY id ASC').execute(db);
+            let backupdata = await new RawQuery<void>('SELECT * FROM test ORDER BY id ASC').execute(backupdb);
+
+            await SQLite.close(backupdb);
+            if (JSON.stringify(dbdata) !== JSON.stringify(backupdata)) {
+                throw new Error("Expected backup database to have identical data as source database.");
+            }
+        });
+
+        await runTest(16, 'restore backup works', async() => {
+            let path = cordova.file.dataDirectory + 'test.db';
+            let backupPath = cordova.file.dataDirectory + 'test-backup.db'
+            await SQLite.backup(path, backupPath);
+
+            // Oops, we destroyed the database
+            await new RawQuery('DELETE FROM test').execute(db);
+
+            let dbdata = await new RawQuery<void>('SELECT * FROM test ORDER BY id ASC').execute(db);
+            
+            if (dbdata.length !== 0) {
+                throw new Error("Expected test table to be empty.");
+            }
+
+            await SQLite.close(db);
+            await SQLite.restoreBackup(path, backupPath);
+            db = await SQLite.open(cordova.file.dataDirectory + 'test.db', true);
+        
+            dbdata = await new RawQuery<void>('SELECT * FROM test ORDER BY id ASC').execute(db);
+            
+            if (dbdata.length === 0) {
+                throw new Error("Expected test table to be restored.");
+            }
+        });
 
         await SQLite.close(db);
     })().then(() => {
