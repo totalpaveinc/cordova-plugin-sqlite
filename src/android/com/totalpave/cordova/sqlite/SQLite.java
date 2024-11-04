@@ -223,6 +223,8 @@ public class SQLite extends CordovaPlugin {
             File source = $parsePath(backupPath);
             File destination = $parsePath(path);
 
+            String userErr = "Could not restore database.";
+
             // Store existing database in case of failure.
             if (!destination.renameTo(tempdestination)) {
                 callback.error(new SqliteException(Error.DOMAIN, "Could not rename existing database.", Error.IO_ERROR).toDictionary());
@@ -231,7 +233,10 @@ public class SQLite extends CordovaPlugin {
 
             // Restore db
             if (!source.renameTo(destination)) {
-                callback.error(new SqliteException(Error.DOMAIN, "Could not restore database.", Error.IO_ERROR).toDictionary());
+                if (!tempdestination.renameTo(destination)) {
+                    userErr += " Also failed to recover from error state.";
+                }
+                callback.error(new SqliteException(Error.DOMAIN, userErr, Error.IO_ERROR).toDictionary());
                 return true;
             }
 
