@@ -347,7 +347,7 @@
             initWithDomain: ERROR_DOMAIN
             code: ERROR_CODE_IO
             userInfo:@{
-                NSLocalizedDescriptionKey: @"Could not restore database.",
+                NSLocalizedDescriptionKey: userErr,
                 NSUnderlyingErrorKey: error
             }
         ];
