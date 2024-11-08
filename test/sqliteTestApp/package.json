@@ -16,7 +16,7 @@
   "devDependencies": {
     "@totalpave/cordova-plugin-libcxx": "25.0.8775105",
     "@totalpave/cordova-plugin-libsqlite": "0.2.2",
-    "@totalpave/cordova-plugin-sqlite": "file:../../totalpave-cordova-plugin-sqlite-0.5.3.tgz",
+    "@totalpave/cordova-plugin-sqlite": "file:../../totalpave-cordova-plugin-sqlite-0.6.1.tgz",
     "@types/cordova": "^11.0.0",
     "cordova-android": "13.0.0",
     "cordova-ios": "7.1.1",
@@ -36,8 +36,8 @@
       "@totalpave/cordova-plugin-sqlite": {}
     },
     "platforms": [
-      "android",
-      "ios"
+      "ios",
+      "android"
     ]
   }
 }
