@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "target": "ES6",
-        "lib": ["DOM"],
+        "target": "ES2017",
+        "lib": ["DOM", "ES2017"],
         "module": "ES2015",
         "declaration": true,
         "sourceMap": true,
