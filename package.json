@@ -23,18 +23,18 @@
   },
   "homepage": "https://github.com/totalpaveinc/cordova-plugin-sqlite#readme",
   "devDependencies": {
-    "@jest/types": "30.2.0",
-    "@rollup/plugin-commonjs": "29.0.1",
+    "@jest/types": "30.4.1",
+    "@rollup/plugin-commonjs": "29.0.3",
     "@rollup/plugin-node-resolve": "16.0.3",
-    "@totalpave/eslint-plugin": "7.0.17",
+    "@totalpave/eslint-plugin": "7.1.1",
     "@types/cordova": "11.0.3",
     "@types/jest": "30.0.0",
-    "jest": "30.2.0",
-    "jest-environment-jsdom": "30.2.0",
-    "rollup": "4.59.0",
+    "jest": "30.4.2",
+    "jest-environment-jsdom": "30.4.1",
+    "rollup": "4.62.2",
     "rollup-plugin-progress": "1.1.2",
-    "rollup-plugin-typescript2": "0.36.0",
-    "ts-jest": "29.4.6",
+    "rollup-plugin-typescript2": "0.37.0",
+    "ts-jest": "29.4.11",
     "ts-node": "10.9.2",
     "typescript": "5.9.3"
   },
@@ -42,7 +42,7 @@
     "cordovaDependencies": {
       "0.0.0": {
         "cordova-android": ">= 10",
-        "cordova-ios": ">= 6"
+        "cordova-ios": ">= 8"
       }
     }
   },
