@@ -4,6 +4,6 @@ ext.repos = {
     google()
     mavenCentral()
     maven {
-        url = uri("https://archiva.totalpave.com/repository/public")
+        url = uri("https://android-artifacts.internal.totalpave.com/android")
     }
 }

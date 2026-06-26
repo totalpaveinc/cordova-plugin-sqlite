@@ -4,3 +4,4 @@ node_modules
 totalpave-cordova-plugin-sqlite-*.tgz
 test/www/js/app.js
 coverage
+.DS_Store

@@ -6,7 +6,8 @@ rm -f ./*.tgz
 npm run build
 npm pack
 
-ANDROID_VERSION=13
+ANDROID_VERSION=15
+IOS_VERSION=8
 
 plugin=`ls *.tgz`
 
@@ -21,6 +22,8 @@ rm -rf plugins/@totalpave/cordova-plugin-libsqlite
 rm -rf plugins/@totalpave/cordova-plugin-libcxx
 
 cordova platform remove android
+cordova platform remove ios
 
 cordova plugin add file:../../$plugin
 cordova platform add android@$ANDROID_VERSION
+cordova platform add ios@$IOS_VERSION
