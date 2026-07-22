@@ -11,7 +11,7 @@ let package = Package(
             targets: ["@totalpave/cordova-plugin-sqlite"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apache/cordova-ios.git", branch: "master"),
+        .package(url: "https://github.com/apache/cordova-ios.git", from: "8.0.0"),
         .package(url: "https://github.com/totalpaveinc/sqlite", exact: "0.4.5")
     ],
     targets: [
